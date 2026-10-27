@@ -13,6 +13,7 @@ import { askPassword, confirmDialog, toast } from './dialog.js';
 import { buildPdf } from './save.js';
 import { cleanCopiedText } from './thai.js';
 import { initUpdateNotice } from './update.js';
+import { resetLinkServices } from './links.js';
 
 const $ = (id) => document.getElementById(id);
 const APP_NAME = 'PDF Reader';
@@ -73,6 +74,7 @@ async function openFile(file) {
     try {
         const pdf = await loadPdf(file.data, askPassword);
         resetDocument();
+        resetLinkServices();
         clearViewer();
         resetThumbs();
         resetSearch();
@@ -83,11 +85,17 @@ async function openFile(file) {
         await rebuild();
         scrollToIndex(0);
         updateUi();
+        announceForm(pdf);
     } catch (err) {
         reportLoadError(err, file.name);
     } finally {
         setBusy(false);
     }
+}
+
+async function announceForm(pdf) {
+    const fields = await pdf.getFieldObjects().catch(() => null);
+    if (fields && Object.keys(fields).length) toast('เอกสารนี้มีฟอร์ม คลิกที่ช่องเพื่อกรอก แล้วกด Ctrl+S เพื่อบันทึก');
 }
 
 async function mergeFiles() {
@@ -124,7 +132,7 @@ async function save(asNew) {
     if (!hasDocument()) return;
     setBusy(true);
     try {
-        const data = await buildPdf();
+        const { data, warnings } = await buildPdf();
         const saved = await window.host.save({
             data,
             filePath: asNew ? null : state.filePath,
@@ -134,7 +142,8 @@ async function save(asNew) {
         state.filePath = saved.path;
         state.fileName = saved.name;
         setDirty(false);
-        toast(`บันทึกแล้ว: ${saved.name}`);
+        if (warnings.length) toast(`บันทึกแล้ว แต่ ${warnings.join(' / ')}`, 'error');
+        else toast(`บันทึกแล้ว: ${saved.name}`);
     } catch (err) {
         console.error(err);
         toast(`บันทึกไม่สำเร็จ: ${err?.message || err}`, 'error');
@@ -147,7 +156,8 @@ async function save(asNew) {
 
 function updateTitle() {
     const name = state.fileName ? `${state.dirty ? '● ' : ''}${state.fileName} — ` : '';
-    window.host.setTitle(`${name}${APP_NAME}`);
+    // Electron mirrors document.title into the window title.
+    document.title = `${name}${APP_NAME}`;
     $('file-name').textContent = state.fileName || 'ยังไม่ได้เปิดไฟล์';
 }
 

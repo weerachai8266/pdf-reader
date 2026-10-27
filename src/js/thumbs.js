@@ -119,7 +119,7 @@ async function renderThumb(li) {
     const canvas = document.createElement('canvas');
     canvas.width = Math.floor(viewport.width);
     canvas.height = Math.floor(viewport.height);
-    await page.render({ canvasContext: canvas.getContext('2d', { alpha: false }), viewport, annotationMode: 0 }).promise;
+    await page.render({ canvasContext: canvas.getContext('2d', { alpha: false }), viewport }).promise;
     rendered.set(cacheKey, canvas);
     const target = list.querySelector(`.thumb[data-key="${entry.key}"][data-rotation="${entry.rotation}"] .thumb-canvas`);
     if (target && !target.firstChild) target.append(canvas);

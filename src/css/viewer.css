@@ -95,12 +95,49 @@
     outline: 2px solid rgb(255 90 0 / 0.8);
 }
 
+/* ---- form / link layer (pdf.js AnnotationLayer) ------------------------ */
+
+.page .annotationLayer {
+    z-index: 2;
+}
+
+/* Field text in a Thai-capable font; pdf.js only sets the size. */
+.page .annotationLayer .textWidgetAnnotation :is(input, textarea),
+.page .annotationLayer .choiceWidgetAnnotation select {
+    font-family: var(--font-sans);
+    color: #000;
+}
+
+/* pdf.js hides native checkboxes and paints the PDF's own check marks into
+   canvases we don't create; use the native control so the state shows. */
+.page .annotationLayer .buttonWidgetAnnotation:is(.checkBox, .radioButton) input {
+    appearance: auto;
+    margin: 0;
+    accent-color: #1b4fc4;
+    cursor: pointer;
+}
+
+/* Make fillable fields easy to spot, like other readers do. */
+.page .annotationLayer .textWidgetAnnotation :is(input, textarea):not(:focus),
+.page .annotationLayer .choiceWidgetAnnotation select:not(:focus),
+.page .annotationLayer .buttonWidgetAnnotation:is(.checkBox, .radioButton) input:not(:focus) {
+    background-color: rgb(204 221 255 / 0.55);
+}
+
+/* Annotating tools must reach the text and page underneath. */
+[data-tool='highlight'] .annotationLayer,
+[data-tool='note'] .annotationLayer,
+[data-tool='image'] .annotationLayer,
+[data-tool='eraser'] .annotationLayer {
+    visibility: hidden;
+}
+
 /* ---- annotation layer ------------------------------------------------- */
 
 .annot-layer {
     position: absolute;
     inset: 0;
-    z-index: 2;
+    z-index: 3;
     pointer-events: none;
 }
 

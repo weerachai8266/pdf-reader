@@ -21,7 +21,8 @@ function check(name, ok, detail = '') {
     console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? '  — ' + detail : ''}`);
 }
 
-dialog.showSaveDialog = async () => ({ canceled: false, filePath: savedPdf });
+let nextSavePath = savedPdf;
+dialog.showSaveDialog = async () => ({ canceled: false, filePath: nextSavePath });
 
 // main.js must be loaded before the app is ready (it registers app://).
 require('../main/main.js');
@@ -145,11 +146,123 @@ async function run() {
         fs.writeFileSync(path.join(outDir, 'reopened.png'), (await win.capturePage()).toPNG());
     }
 
+    await testForms(win, js);
+
     console.log(`\nscreenshot: ${shot}\noutput dir: ${outDir}`);
     const failed = results.filter((r) => !r.ok).length;
     console.log(failed ? `${failed} FAILED` : 'ALL PASSED');
     win.removeAllListeners('close');
     app.exit(failed ? 1 : 0);
+}
+
+async function makeFormPdf(file) {
+    const { PDFDocument } = await import('pdf-lib');
+    const doc = await PDFDocument.create();
+    const page = doc.addPage([595, 842]);
+    const form = doc.getForm();
+    const name = form.createTextField('fullname');
+    name.addToPage(page, { x: 60, y: 720, width: 300, height: 28 });
+    const agree = form.createCheckBox('agree');
+    agree.addToPage(page, { x: 60, y: 670, width: 20, height: 20 });
+    const province = form.createDropdown('province');
+    province.addOptions(['Bangkok', 'Chiang Mai', 'Phuket']);
+    province.addToPage(page, { x: 60, y: 610, width: 200, height: 26 });
+    const gender = form.createRadioGroup('gender');
+    gender.addOptionToPage('male', page, { x: 60, y: 560, width: 18, height: 18 });
+    gender.addOptionToPage('female', page, { x: 120, y: 560, width: 18, height: 18 });
+    fs.writeFileSync(file, await doc.save());
+}
+
+async function saveAs(js, file) {
+    nextSavePath = file;
+    await js(`document.querySelector('[data-action="save-as"]').click()`);
+    for (let t = 0; t < 60; t++) {
+        if (fs.existsSync(file) && fs.statSync(file).size > 0) {
+            await sleep(300);
+            return true;
+        }
+        await sleep(200);
+    }
+    return false;
+}
+
+async function testForms(win, js) {
+    const { PDFDocument } = await import('pdf-lib');
+    const formPdf = path.join(outDir, 'form.pdf');
+    const filledPdf = path.join(outDir, 'form-filled.pdf');
+    const rotatedPdf = path.join(outDir, 'form-rotated.pdf');
+    const THAI = 'สมชาย ใจดี น้ำใจ';
+    await makeFormPdf(formPdf);
+    const original = fs.readFileSync(formPdf);
+
+    win.webContents.send('file:opened', { path: formPdf, name: 'form.pdf', data: new Uint8Array(original) });
+    check('form fields rendered', await waitFor(win, `document.querySelectorAll('.annotationLayer input, .annotationLayer select').length >= 4`));
+    const typeName = (value) => js(`(() => {
+        const text = document.querySelector('.textWidgetAnnotation input');
+        text.focus(); text.value = ${JSON.stringify(value)};
+        text.dispatchEvent(new Event('input', { bubbles: true }));
+        text.dispatchEvent(new Event('change', { bubbles: true }));
+        text.blur();
+    })()`);
+    await typeName('John Smith');
+    await js(`(() => {
+        document.querySelector('.buttonWidgetAnnotation.checkBox input').click();
+        const sel = document.querySelector('.choiceWidgetAnnotation select');
+        sel.value = 'Chiang Mai';
+        sel.dispatchEvent(new Event('input', { bubbles: true }));
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+        document.querySelectorAll('.buttonWidgetAnnotation.radioButton input')[1].click();
+    })()`);
+    check('filling marks dirty', await waitFor(win, `document.title.startsWith('●')`));
+    check('checkbox shows checked', await js(`document.querySelector('.buttonWidgetAnnotation.checkBox input').checked && getComputedStyle(document.querySelector('.buttonWidgetAnnotation.checkBox input')).appearance === 'auto'`));
+
+    // Latin-only values: pdf.js incremental save.
+    const latinPdf = path.join(outDir, 'form-latin.pdf');
+    if (await saveAs(js, latinPdf)) {
+        const bytes = fs.readFileSync(latinPdf);
+        check('latin form saved as incremental update', bytes.subarray(0, original.length).equals(original));
+        const form = (await PDFDocument.load(bytes)).getForm();
+        check('latin text value saved', form.getTextField('fullname').getText() === 'John Smith');
+        check('checkbox saved', form.getCheckBox('agree').isChecked());
+        check('dropdown saved', form.getDropdown('province').getSelected()[0] === 'Chiang Mai');
+        check('radio saved', form.getRadioGroup('gender').getSelected() === 'female', String(form.getRadioGroup('gender').getSelected()));
+    } else {
+        check('latin form saved', false);
+    }
+
+    // Thai value: appearance must be drawn with an embedded Thai font.
+    await typeName(THAI);
+    const ok = await saveAs(js, filledPdf);
+    check('Thai form saved', ok);
+    if (ok) {
+        const doc = await PDFDocument.load(fs.readFileSync(filledPdf));
+        const form = doc.getForm();
+        check('Thai text value saved', form.getTextField('fullname').getText() === THAI, form.getTextField('fullname').getText());
+        check('other fields kept', form.getCheckBox('agree').isChecked() && form.getRadioGroup('gender').getSelected() === 'female');
+        const { PDFDict, PDFName } = await import('pdf-lib');
+        const fonts = doc.context.enumerateIndirectObjects()
+            .map(([, obj]) => obj)
+            .filter((obj) => obj instanceof PDFDict && obj.get(PDFName.of('Type'))?.toString() === '/Font')
+            .map((obj) => String(obj.get(PDFName.of('BaseFont'))));
+        check('Thai font embedded for field', fonts.some((f) => /Tahoma/i.test(f)), fonts.join(' '));
+    }
+
+    // Form values must also survive the pdf-lib path (page rotated).
+    await js(`document.querySelector('#thumbs .thumb [data-action="rotate-right"]').click()`);
+    await waitFor(win, `document.title.startsWith('●')`);
+    const ok2 = await saveAs(js, rotatedPdf);
+    if (ok2) {
+        const doc = await PDFDocument.load(fs.readFileSync(rotatedPdf));
+        check('form survives page rotation save', doc.getForm().getTextField('fullname').getText() === THAI && doc.getPage(0).getRotation().angle === 90);
+    } else {
+        check('form survives page rotation save', false, 'not saved');
+    }
+
+    // Reopen the filled file; the thumbnail shows the generated appearance.
+    win.webContents.send('file:opened', { path: filledPdf, name: 'form-filled.pdf', data: new Uint8Array(fs.readFileSync(filledPdf)) });
+    check('filled form reopens with value', await waitFor(win, `document.querySelector('.textWidgetAnnotation input')?.value === ${JSON.stringify(THAI)}`));
+    await sleep(1200);
+    fs.writeFileSync(path.join(outDir, 'form.png'), (await win.capturePage()).toPNG());
 }
 
 app.whenReady().then(() => run().catch((err) => {

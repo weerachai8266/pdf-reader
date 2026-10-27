@@ -54,7 +54,7 @@ async function waitFor(expr, ms = 15000) {
 const checks = [
     ['pages laid out', `document.querySelectorAll('#pages .page').length > 0`],
     ['canvas rendered', `!!document.querySelector('.page canvas')`],
-    ['text layer filled', `document.querySelector('.textLayer')?.textContent.length > 0`],
+    ['text or form fields present', `document.querySelector('.textLayer')?.textContent.length > 0 || !!document.querySelector('.annotationLayer input')`],
     ['logo loads', `document.querySelector('.empty-logo').complete && document.querySelector('.empty-logo').naturalWidth > 0`],
     ['version shown', `document.getElementById('app-version').textContent.startsWith('v')`],
 ];

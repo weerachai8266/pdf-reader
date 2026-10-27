@@ -39,7 +39,9 @@ export function hasDocument() {
 
 export function addSource({ name, bytes, pdf }, insertAt = state.pages.length) {
     const id = uid('s');
-    state.sources.set(id, { id, name, bytes, pdf });
+    state.sources.set(id, { id, name, bytes, pdf, fieldObjects: null });
+    // Typing into a form field marks the document as changed.
+    pdf.annotationStorage.onSetModified = () => setDirty(true);
     const entries = [];
     for (let i = 0; i < pdf.numPages; i++) {
         entries.push({ key: uid('p'), srcId: id, index: i, rotation: 0 });

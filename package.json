@@ -1,7 +1,7 @@
 {
   "name": "pdf-reader",
   "productName": "PDF Reader",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "โปรแกรมอ่าน PDF ที่เบา เร็ว รองรับภาษาไทย ไฮไลต์ คอมเมนต์ เซ็น และจัดการหน้าได้ฟรี",
   "author": "PDF Reader",
   "main": "main/main.js",
@@ -16,6 +16,7 @@
   "license": "UNLICENSED",
   "type": "commonjs",
   "dependencies": {
+    "@pdf-lib/fontkit": "^1.1.1",
     "electron-updater": "^6.8.11",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.4.299"
@@ -42,7 +43,7 @@
       "!node_modules/pdfjs-dist/legacy/**",
       "!node_modules/pdfjs-dist/types/**",
       "!node_modules/pdfjs-dist/image_decoders/**",
-      "!node_modules/pdfjs-dist/web/**",
+      "!node_modules/pdfjs-dist/web/*.*",
       "!node_modules/@napi-rs/**"
     ],
     "fileAssociations": [

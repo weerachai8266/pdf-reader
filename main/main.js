@@ -1,6 +1,6 @@
 'use strict';
 
-const { app, BrowserWindow, dialog, ipcMain, protocol, net, Menu } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, protocol, net, Menu, shell } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
@@ -30,7 +30,7 @@ function registerAppProtocol() {
         if (!allowed.some((dir) => target.startsWith(dir + path.sep))) {
             return new Response('Not found', { status: 404 });
         }
-        return net.fetch(pathToFileURL(target).toString());
+        return net.fetch(pathToFileURL(target).toString()).catch(() => new Response('Not found', { status: 404 }));
     });
 }
 
@@ -65,7 +65,11 @@ function createWindow() {
         if (choice !== 0) e.preventDefault();
     });
     mainWindow.webContents.on('will-navigate', (e) => e.preventDefault());
-    mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    // Links inside PDFs open in the default browser / mail client.
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+        if (/^(https?:|mailto:)/i.test(url)) shell.openExternal(url);
+        return { action: 'deny' };
+    });
     if (process.argv.includes('--devtools')) mainWindow.webContents.openDevTools();
 }
 
@@ -113,12 +117,21 @@ ipcMain.handle('file:save', async (_e, { data, filePath, suggestedName }) => {
     return { path: target, name: path.basename(target) };
 });
 
-ipcMain.on('doc:dirty', (_e, dirty) => {
-    isDirty = Boolean(dirty);
+// Thai font for drawing form-field appearances. Tahoma ships with every
+// Windows, allows editable embedding (OS/2 fsType), and is the only Thai
+// system font that both subsets correctly with fontkit and positions
+// stacked marks (e.g. น้ำ) correctly; Leelawadee UI fails at both.
+ipcMain.handle('font:thai', async () => {
+    const fontsDir = path.join(process.env.WINDIR || 'C:\\Windows', 'Fonts');
+    try {
+        return new Uint8Array(await fs.readFile(path.join(fontsDir, 'tahoma.ttf')));
+    } catch {
+        return null;
+    }
 });
 
-ipcMain.on('window:set-title', (_e, title) => {
-    if (mainWindow && typeof title === 'string') mainWindow.setTitle(title);
+ipcMain.on('doc:dirty', (_e, dirty) => {
+    isDirty = Boolean(dirty);
 });
 
 const gotLock = app.requestSingleInstanceLock();

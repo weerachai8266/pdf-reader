@@ -17,8 +17,8 @@ const PUA_MAP = new Map([
     [0xf718, 0x0e38], [0xf719, 0x0e39], [0xf71a, 0x0e3a],
 ]);
 
-const DROP = /[\u0000-\u0008\u000b\u000c\u000e-\u001f­​-‍﻿]/g;
-const TONE_MARKS = /[่-๋]/g;
+const DROP = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u00ad\u200b-\u200d\ufeff]/g;
+const TONE_MARKS = /[\u0e48-\u0e4b]/g;
 
 function fixGlyphs(str) {
     let out = '';
@@ -29,7 +29,7 @@ function fixGlyphs(str) {
     return out
         .replace(DROP, '')
         // Tone mark typed before NIKHAHIT + SARA AA, or plain NIKHAHIT + SARA AA.
-        .replace(/([่-๋]?)ํา/g, '$1ำ');
+        .replace(/([\u0e48-\u0e4b]?)\u0e4d\u0e32/g, '$1\u0e33');
 }
 
 // Strict form: exact Thai spelling, case- and whitespace-insensitive.

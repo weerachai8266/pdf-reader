@@ -7,10 +7,13 @@
 import { pdfjsLib } from './pdfjs.js';
 import { state, getPdfPage } from './docstate.js';
 import { emit, on } from './bus.js';
+import { linkServiceFor } from './links.js';
 import { RENDER_MARGIN, ZOOM_MIN, ZOOM_MAX, ZOOM_STEP } from './config.js';
 
 const CSS_UNITS = pdfjsLib.PixelsPerInch.PDF_TO_CSS_UNITS;
 const PAGE_GAP = 12;
+// Icons pdf.js uses for existing comment (/Text) annotations.
+const ANNOTATION_ICONS = new URL('../../node_modules/pdfjs-dist/web/images/', import.meta.url).href;
 
 let scroller = null;
 let pagesEl = null;
@@ -73,11 +76,13 @@ function createView(entry) {
     div.dataset.key = entry.key;
     const textLayer = document.createElement('div');
     textLayer.className = 'textLayer';
+    const formLayer = document.createElement('div');
+    formLayer.className = 'annotationLayer';
     const annotLayer = document.createElement('div');
     annotLayer.className = 'annot-layer';
-    div.append(textLayer, annotLayer);
+    div.append(textLayer, formLayer, annotLayer);
     const view = {
-        entry, div, textLayerDiv: textLayer, annotLayer,
+        entry, div, textLayerDiv: textLayer, formLayerDiv: formLayer, annotLayer,
         canvas: null, task: null, textLayer: null, viewport: null,
         rendered: false, visible: false, token: 0, rotationAtBuild: entry.rotation,
     };
@@ -143,6 +148,7 @@ function releaseView(view) {
         view.canvas = null;
     }
     view.textLayerDiv.replaceChildren();
+    view.formLayerDiv.replaceChildren();
     view.rendered = false;
 }
 
@@ -180,6 +186,8 @@ async function renderView(view) {
         canvasContext: canvas.getContext('2d', { alpha: false }),
         viewport,
         transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null,
+        // Form widgets are drawn by the HTML form layer instead.
+        annotationMode: pdfjsLib.AnnotationMode.ENABLE_FORMS,
     });
     view.task = task;
     try {
@@ -199,6 +207,9 @@ async function renderView(view) {
     view.rendered = true;
     emit('page-rendered', view);
 
+    await renderFormLayer(view, page, viewport, token);
+    if (token !== view.token) return;
+
     const textContent = await page.getTextContent();
     if (token !== view.token) return;
     view.textLayerDiv.replaceChildren();
@@ -211,6 +222,47 @@ async function renderView(view) {
     }
     if (token !== view.token) return;
     emit('text-layer-rendered', view);
+}
+
+// Links, form fields and existing comments, via pdf.js' AnnotationLayer.
+// Field values live in the source document's annotationStorage, so they
+// survive re-rendering on zoom/scroll and are picked up when saving.
+async function renderFormLayer(view, page, viewport, token) {
+    const src = state.sources.get(view.entry.srcId);
+    try {
+        const [annotations, fieldObjects] = await Promise.all([
+            page.getAnnotations({ intent: 'display' }),
+            src.fieldObjects ??= src.pdf.getFieldObjects(),
+        ]);
+        if (token !== view.token) return;
+        view.formLayerDiv.replaceChildren();
+        if (!annotations.length) return;
+        const linkService = linkServiceFor(src.id);
+        const layer = new pdfjsLib.AnnotationLayer({
+            div: view.formLayerDiv,
+            accessibilityManager: null,
+            annotationCanvasMap: null,
+            annotationEditorUIManager: null,
+            page,
+            viewport: viewport.clone({ dontFlip: true }),
+            structTreeLayer: null,
+            commentManager: null,
+            linkService,
+            annotationStorage: src.pdf.annotationStorage,
+        });
+        await layer.render({
+            annotations,
+            imageResourcesPath: ANNOTATION_ICONS,
+            linkService,
+            renderForms: true,
+            annotationStorage: src.pdf.annotationStorage,
+            enableScripting: false,
+            hasJSActions: false,
+            fieldObjects,
+        });
+    } catch (err) {
+        console.error('annotation layer failed', err);
+    }
 }
 
 // ---- zoom -------------------------------------------------------------

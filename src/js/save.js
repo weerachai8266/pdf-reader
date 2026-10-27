@@ -8,20 +8,65 @@ import { state } from './docstate.js';
 import { HIGHLIGHT_COLORS, HIGHLIGHT_OPACITY, NOTE_ICON_PX } from './config.js';
 
 const NOTE_COLOR = [1, 0.82, 0.2];
+// Characters outside Latin-1 can't be drawn with the standard PDF fonts
+// pdf.js uses for field appearances (Thai comes out as garbage).
+const NON_LATIN1 = /[^\u0000-\u00ff]/;
 
+// Bytes of a source with any filled-in form values written by pdf.js.
+async function sourceBytes(src) {
+    return src.pdf.annotationStorage.size > 0 ? src.pdf.saveDocument() : src.bytes;
+}
+
+function hasNonLatinFormValues(src) {
+    const { map } = src.pdf.annotationStorage.serializable;
+    if (!map) return false;
+    for (const entry of map.values()) {
+        const values = [].concat(entry?.value ?? []);
+        if (values.some((v) => typeof v === 'string' && NON_LATIN1.test(v))) return true;
+    }
+    return false;
+}
+
+// True when the only possible change is form filling: one file, pages in
+// their original order and rotation, and none of our own annotations.
+function onlyFormChanges() {
+    if (state.sources.size !== 1) return false;
+    const [src] = state.sources.values();
+    if (state.pages.length !== src.pdf.numPages) return false;
+    const pagesUntouched = state.pages.every((p, i) => p.index === i && p.rotation === 0);
+    const noAnnots = [...state.annots.values()].every((list) => list.length === 0);
+    return pagesUntouched && noAnnots;
+}
+
+// Returns { data, warnings }.
 export async function buildPdf() {
+    const formOnly = onlyFormChanges();
+    const [firstSrc] = state.sources.values();
+
+    // Fast path: pdf.js writes an incremental update, keeping the file exactly
+    // as it was apart from the field values (also works for encrypted files).
+    // Thai values need appearances drawn with a Thai font, which only the
+    // pdf-lib path below can do.
+    if (formOnly && !hasNonLatinFormValues(firstSrc)) {
+        return { data: await sourceBytes(firstSrc), warnings: [] };
+    }
+
     const lib = await import('../../node_modules/pdf-lib/dist/pdf-lib.esm.min.js');
     const { PDFDocument } = lib;
 
     const docs = new Map();
     for (const src of state.sources.values()) {
         try {
-            docs.set(src.id, await PDFDocument.load(src.bytes, { updateMetadata: false }));
+            docs.set(src.id, await PDFDocument.load(await sourceBytes(src), { updateMetadata: false }));
         } catch (err) {
-            if (err instanceof lib.EncryptedPDFError) {
-                throw new Error(`ไฟล์ "${src.name}" ถูกเข้ารหัส ยังบันทึกการแก้ไขไม่ได้`);
+            if (!(err instanceof lib.EncryptedPDFError)) throw err;
+            if (formOnly) {
+                return {
+                    data: await sourceBytes(firstSrc),
+                    warnings: ['ไฟล์มีรหัสผ่าน: บันทึกค่าในฟอร์มแล้ว แต่ข้อความภาษาไทยในช่องอาจแสดงไม่ถูกต้องในโปรแกรมอื่น'],
+                };
             }
-            throw err;
+            throw new Error(`ไฟล์ "${src.name}" มีรหัสผ่าน บันทึกได้เฉพาะการกรอกฟอร์ม ยังจัดการหน้า/ไฮไลต์/เซ็นไม่ได้`);
         }
     }
 
@@ -55,8 +100,67 @@ export async function buildPdf() {
         }
     }
 
+    const warnings = await fixNonLatinAppearances(lib, base);
     base.setModificationDate(new Date());
-    return base.save({ useObjectStreams: true });
+    // Appearances are handled above; pdf-lib's own pass would use Helvetica.
+    const data = await base.save({ useObjectStreams: true, updateFieldAppearances: false });
+    return { data, warnings };
+}
+
+// ---- Thai form field appearances ---------------------------------------
+
+function fieldText(lib, field) {
+    if (field instanceof lib.PDFTextField) return field.getText() || '';
+    if (field instanceof lib.PDFDropdown || field instanceof lib.PDFOptionList) return field.getSelected().join('');
+    return '';
+}
+
+// Redraw fields whose value needs a Thai font, embedding a subset of
+// Windows' Tahoma (see main.js for why Tahoma).
+async function fixNonLatinAppearances(lib, doc) {
+    let fields;
+    try {
+        fields = doc.getForm().getFields();
+    } catch {
+        return [];
+    }
+    const targets = fields.filter((f) => {
+        try {
+            return NON_LATIN1.test(fieldText(lib, f));
+        } catch {
+            return false;
+        }
+    });
+    if (!targets.length) return [];
+
+    const fontBytes = await window.host.thaiFont();
+    if (!fontBytes) return ['ไม่พบฟอนต์ภาษาไทยในเครื่อง ข้อความไทยในฟอร์มอาจแสดงไม่ถูกต้องในโปรแกรมอื่น'];
+    await loadFontkit();
+    doc.registerFontkit(self.fontkit);
+    const font = await doc.embedFont(fontBytes, { subset: true });
+
+    const failed = [];
+    for (const field of targets) {
+        try {
+            field.updateAppearances(font);
+        } catch (err) {
+            console.warn('appearance update failed', field.getName(), err);
+            failed.push(field.getName());
+        }
+    }
+    return failed.length ? [`สร้างหน้าตาช่อง ${failed.join(', ')} ไม่สำเร็จ`] : [];
+}
+
+let fontkitPromise = null;
+function loadFontkit() {
+    fontkitPromise ??= new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = new URL('../../node_modules/@pdf-lib/fontkit/dist/fontkit.umd.min.js', import.meta.url).href;
+        script.onload = resolve;
+        script.onerror = () => reject(new Error('โหลด fontkit ไม่สำเร็จ'));
+        document.head.append(script);
+    });
+    return fontkitPromise;
 }
 
 function quadBox(quad) {
