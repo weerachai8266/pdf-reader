@@ -12,6 +12,7 @@ import { addAnnot, annotsFor, removeAnnot, updateAnnot } from './docstate.js';
 import { getView, allViews } from './viewer.js';
 import { HIGHLIGHT_COLORS, SIGNATURE_DEFAULT_WIDTH_PT } from './config.js';
 import { promptText } from './dialog.js';
+import { icon } from './icons.js';
 
 let tool = 'select';
 let highlightColor = 'yellow';
@@ -112,7 +113,7 @@ function drawAnnots(view) {
             el.title = a.text;
             el.style.left = `${x}px`;
             el.style.top = `${y}px`;
-            el.textContent = '💬';
+            el.append(icon('message-square-text'));
             layer.append(el);
         } else if (a.type === 'redact') {
             const el = document.createElement('div');

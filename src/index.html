@@ -15,25 +15,24 @@
 <body data-tool="select">
     <header class="toolbar" id="toolbar">
         <div class="tool-group">
-            <button type="button" data-action="toggle-sidebar" title="Show/hide sidebar">☰</button>
-            <button type="button" data-action="open" title="Open (Ctrl+O)">📂 Open</button>
-            <button type="button" data-action="merge" data-needs-doc title="Combine files">➕ Combine</button>
-            <button type="button" data-action="save" data-needs-doc title="Save (Ctrl+S)">💾 Save</button>
-            <button type="button" data-action="save-as" data-needs-doc title="Save As (Ctrl+Shift+S)">Save As…</button>
-            <button type="button" data-action="print" data-needs-doc title="Print (Ctrl+P)">🖨 Print</button>
+            <button type="button" data-action="toggle-sidebar" title="Show/Hide Sidebar" aria-label="Show/Hide Sidebar"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-panel-left"></use></svg></button>
+            <button type="button" data-action="open" title="Open (Ctrl+O)" aria-label="Open"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-folder-open"></use></svg></button>
+            <button type="button" data-action="merge" data-needs-doc title="Combine Files" aria-label="Combine Files"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-file-plus-2"></use></svg></button>
+            <button type="button" data-action="save" data-needs-doc title="Save (Ctrl+S)" aria-label="Save"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-save"></use></svg></button>
+            <button type="button" data-action="print" data-needs-doc title="Print (Ctrl+P)" aria-label="Print"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-printer"></use></svg></button>
         </div>
 
         <div class="tool-group">
-            <button type="button" data-action="prev-page" data-needs-doc title="Previous page">‹</button>
+            <button type="button" data-action="prev-page" data-needs-doc title="Previous Page" aria-label="Previous Page"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-chevron-left"></use></svg></button>
             <label class="page-nav">
                 <input id="page-input" type="number" min="1" value="1" data-needs-doc aria-label="Page number">
                 <span>/ <span id="page-count">0</span></span>
             </label>
-            <button type="button" data-action="next-page" data-needs-doc title="Next page">›</button>
+            <button type="button" data-action="next-page" data-needs-doc title="Next Page" aria-label="Next Page"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-chevron-right"></use></svg></button>
         </div>
 
         <div class="tool-group">
-            <button type="button" data-action="zoom-out" data-needs-doc title="Zoom out (Ctrl+-)">−</button>
+            <button type="button" data-action="zoom-out" data-needs-doc title="Zoom Out (Ctrl+-)" aria-label="Zoom Out"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-zoom-out"></use></svg></button>
             <select id="zoom-select" data-needs-doc aria-label="Zoom">
                 <option value="width">Fit Width</option>
                 <option value="page">Fit Page</option>
@@ -46,28 +45,31 @@
                 <option value="3">300%</option>
                 <option data-custom hidden value="custom">Custom</option>
             </select>
-            <button type="button" data-action="zoom-in" data-needs-doc title="Zoom in (Ctrl++)">+</button>
+            <button type="button" data-action="zoom-in" data-needs-doc title="Zoom In (Ctrl++)" aria-label="Zoom In"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-zoom-in"></use></svg></button>
         </div>
 
         <div class="tool-group">
-            <button type="button" data-tool="select" data-needs-doc aria-pressed="true" title="Select text (V)">🖱 Select</button>
-            <button type="button" data-tool="highlight" data-needs-doc aria-pressed="false" title="Highlight (H) — drag across text">🖍 Highlight</button>
+            <button type="button" data-tool="select" data-needs-doc aria-pressed="true" title="Select Text (V)" aria-label="Select Text"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-mouse-pointer-2"></use></svg></button>
+            <button type="button" data-tool="highlight" data-needs-doc aria-pressed="false" title="Highlight (H) — drag across text" aria-label="Highlight"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-highlighter"></use></svg></button>
             <span class="color-swatches" role="group" aria-label="Highlight color">
                 <button type="button" class="swatch swatch-yellow" data-color="yellow" data-needs-doc aria-pressed="true" title="Yellow"></button>
                 <button type="button" class="swatch swatch-green" data-color="green" data-needs-doc aria-pressed="false" title="Green"></button>
                 <button type="button" class="swatch swatch-pink" data-color="pink" data-needs-doc aria-pressed="false" title="Pink"></button>
                 <button type="button" class="swatch swatch-blue" data-color="blue" data-needs-doc aria-pressed="false" title="Blue"></button>
             </span>
-            <button type="button" data-tool="note" data-needs-doc aria-pressed="false" title="Add note (N) — click on the page">💬 Note</button>
-            <button type="button" data-action="signature" data-needs-doc title="Fill &amp; Sign">✍ Sign</button>
-            <button type="button" data-tool="redact" data-needs-doc aria-pressed="false" title="Mark for Redaction — drag over content to remove">⬛ Redact</button>
+            <button type="button" data-tool="note" data-needs-doc aria-pressed="false" title="Add Note (N) — click on the page" aria-label="Add Note"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-message-square-text"></use></svg></button>
+            <button type="button" data-action="signature" data-needs-doc title="Fill &amp; Sign" aria-label="Fill &amp; Sign"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-signature"></use></svg></button>
+            <button type="button" data-tool="redact" data-needs-doc aria-pressed="false" title="Mark for Redaction — drag over content to remove" aria-label="Mark for Redaction"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-rectangle-horizontal"></use></svg></button>
+            <button type="button" data-tool="eraser" data-needs-doc aria-pressed="false" title="Eraser — click a highlight, note, signature or redaction mark" aria-label="Eraser"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-eraser"></use></svg></button>
             <button type="button" data-action="apply-redactions" class="apply-redactions" id="apply-redactions" hidden title="Permanently remove marked content">Apply Redactions</button>
-            <button type="button" data-tool="eraser" data-needs-doc aria-pressed="false" title="Eraser — click a highlight, note, signature or redaction mark">🧽 Eraser</button>
-            <button type="button" data-action="ocr" data-needs-doc title="Recognize Text (OCR) — make scanned pages searchable">🔤 OCR</button>
+        </div>
+
+        <div class="tool-group">
+            <button type="button" data-action="ocr" data-needs-doc title="Recognize Text (OCR) — make scanned pages searchable" aria-label="Recognize Text"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-scan-text"></use></svg></button>
         </div>
 
         <div class="tool-group tool-group-end">
-            <button type="button" data-action="show-search" data-needs-doc title="Find (Ctrl+F)">🔍 Find</button>
+            <button type="button" data-action="show-search" data-needs-doc title="Find (Ctrl+F)" aria-label="Find"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-search"></use></svg></button>
         </div>
     </header>
 
@@ -86,8 +88,8 @@
             <section class="panel" data-panel="search" hidden>
                 <div class="search-box">
                     <input id="search-input" type="search" placeholder="พิมพ์คำที่ต้องการค้นหา" aria-label="Find">
-                    <button type="button" id="search-prev" title="Previous (Shift+Enter)">↑</button>
-                    <button type="button" id="search-next" title="Next (Enter)">↓</button>
+                    <button type="button" id="search-prev" title="Previous (Shift+Enter)" aria-label="Previous"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-chevron-up"></use></svg></button>
+                    <button type="button" id="search-next" title="Next (Enter)" aria-label="Next"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-chevron-down"></use></svg></button>
                 </div>
                 <p class="search-status" id="search-status"></p>
                 <p class="empty-hint" id="search-empty" hidden>ไม่พบข้อความนี้ในเอกสาร</p>

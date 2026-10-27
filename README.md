@@ -20,6 +20,8 @@ npm run icons        # สร้างไอคอนใหม่จาก build
 
 ฟอนต์ที่ใช้คือฟอนต์ของ Windows เอง (Segoe UI สำหรับอังกฤษ และ Leelawadee UI สำหรับไทย) จึงไม่ต้องโหลดฟอนต์เพิ่ม
 
+ไอคอนบนแถบเครื่องมือเป็นไอคอนเส้นจาก [Lucide](https://lucide.dev) (ISC) รวมไว้ในไฟล์เดียว `src/img/icons.svg` ถ้าต้องการไอคอนเพิ่ม ให้เพิ่มชื่อใน `tools/make-icon-sprite.js` แล้วรัน `node tools/make-icon-sprite.js`
+
 ## ฟีเจอร์
 
 | ด้าน | รายละเอียด |

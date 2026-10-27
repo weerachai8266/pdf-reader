@@ -138,7 +138,7 @@ async function run() {
     await sleep(800);
     fs.writeFileSync(shot, (await win.capturePage()).toPNG());
 
-    await js(`document.querySelector('[data-action="save-as"]').click()`);
+    win.webContents.send('menu:command', 'save-as');
     const savedOk = await (async () => {
         for (let t = 0; t < 60; t++) {
             if (fs.existsSync(savedPdf) && fs.statSync(savedPdf).size > 0) return true;
@@ -212,7 +212,7 @@ async function makeFormPdf(file) {
 
 async function saveAs(js, file) {
     nextSavePath = file;
-    await js(`document.querySelector('[data-action="save-as"]').click()`);
+    BrowserWindow.getAllWindows().find((w) => w.webContents.getURL().startsWith('app://')).webContents.send('menu:command', 'save-as');
     for (let t = 0; t < 60; t++) {
         if (fs.existsSync(file) && fs.statSync(file).size > 0) {
             await sleep(300);

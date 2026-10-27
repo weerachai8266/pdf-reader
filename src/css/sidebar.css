@@ -20,11 +20,11 @@ body:not(.has-doc) .sidebar,
 
 .sidebar-tabs button {
     flex: 1;
-    padding: 8px 0;
+    padding: 4px 0;
     border: 0;
     border-bottom: 2px solid transparent;
     background: none;
-    font-size: var(--fs-sm);
+    font-size: var(--fs-xs);
     color: var(--text-muted);
 }
 
@@ -132,13 +132,24 @@ body:not(.has-doc) .sidebar,
 }
 
 .thumb-actions button {
-    width: 28px;
-    height: 28px;
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
     padding: 0;
     border: 0;
     border-radius: 4px;
     background: none;
-    font-size: var(--fs-sm);
+    color: var(--text-muted);
+}
+
+.thumb-actions .icon {
+    width: 15px;
+    height: 15px;
+}
+
+.thumb-actions button:hover {
+    color: var(--text);
 }
 
 .thumb-actions button:hover {
@@ -155,17 +166,29 @@ body:not(.has-doc) .sidebar,
 .search-box input {
     flex: 1;
     min-width: 0;
-    padding: 6px 8px;
+    height: 30px;
+    padding: 0 8px;
+    font-size: var(--fs-sm);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--surface);
 }
 
 .search-box button {
-    width: 32px;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--surface);
+    color: var(--text-muted);
+}
+
+.search-box .icon {
+    width: 16px;
+    height: 16px;
 }
 
 .search-status {

@@ -120,7 +120,7 @@ module.exports = async function testDocTools(t) {
     check('redacted page searchable again (OCR)', (await search('ภาษาไทย')) >= 3);
     const redacted = path.join(outDir, 'redacted.pdf');
     setSavePath(redacted);
-    await js(`document.querySelector('[data-action="save-as"]').click()`);
+    win.webContents.send('menu:command', 'save-as');
     if (await waitFile(redacted)) {
         // Page 1 must be just the scan image plus the OCR font: the original
         // fonts and the stamped text are gone.
@@ -197,7 +197,7 @@ module.exports = async function testDocTools(t) {
     check('security removed', await waitToast(/ปลดรหัสผ่านแล้ว/));
     const unlocked = path.join(outDir, 'unlocked.pdf');
     setSavePath(unlocked);
-    await js(`document.querySelector('[data-action="save-as"]').click()`);
+    win.webContents.send('menu:command', 'save-as');
     if (await waitFile(unlocked)) {
         const plain = await showEncryption(unlocked, '');
         check('saved file has no password', /File is not encrypted/.test(plain.text) && (await pageCount(unlocked)) === 3, plain.text.split('\n')[0]);

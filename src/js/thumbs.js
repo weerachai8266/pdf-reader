@@ -4,6 +4,7 @@ import { on } from './bus.js';
 import { state, getPdfPage, movePage, rotatePage, deletePage } from './docstate.js';
 import { scrollToIndex } from './viewer.js';
 import { toast } from './dialog.js';
+import { iconHtml } from './icons.js';
 
 const THUMB_WIDTH = 132;
 const $ = (id) => document.getElementById(id);
@@ -93,9 +94,9 @@ function rebuildThumbs() {
             <div class="thumb-bar">
                 <span class="thumb-num">${idx + 1}</span>
                 <span class="thumb-actions">
-                    <button type="button" data-action="rotate-left" title="Rotate left">⟲</button>
-                    <button type="button" data-action="rotate-right" title="Rotate right">⟳</button>
-                    <button type="button" data-action="delete" title="Delete page">🗑</button>
+                    <button type="button" data-action="rotate-left" title="Rotate Left" aria-label="Rotate Left">${iconHtml('rotate-ccw')}</button>
+                    <button type="button" data-action="rotate-right" title="Rotate Right" aria-label="Rotate Right">${iconHtml('rotate-cw')}</button>
+                    <button type="button" data-action="delete" title="Delete Page" aria-label="Delete Page">${iconHtml('trash-2')}</button>
                 </span>
             </div>`;
         const cached = rendered.get(`${entry.key}:${entry.rotation}`);
