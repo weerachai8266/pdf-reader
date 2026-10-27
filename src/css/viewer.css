@@ -1,0 +1,270 @@
+.viewer {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    overflow: auto;
+    background: var(--viewer-bg);
+}
+
+.pages {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 8px 40px;
+    width: max-content;
+    min-width: 100%;
+}
+
+.page {
+    --user-unit: 1;
+    --scale-round-x: 1px;
+    --scale-round-y: 1px;
+    position: relative;
+    flex: none;
+    background: #fff;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.page-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* ---- text layer (subset of pdf.js pdf_viewer.css) --------------------- */
+
+.textLayer {
+    position: absolute;
+    inset: 0;
+    overflow: clip;
+    opacity: 1;
+    line-height: 1;
+    text-align: initial;
+    letter-spacing: normal;
+    word-spacing: normal;
+    text-size-adjust: none;
+    forced-color-adjust: none;
+    transform-origin: 0 0;
+    z-index: 1;
+    --min-font-size: 1;
+    --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+    --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+
+.textLayer :is(span, br) {
+    color: transparent;
+    position: absolute;
+    white-space: pre;
+    cursor: text;
+    transform-origin: 0% 0%;
+    user-select: text;
+}
+
+.textLayer > :not(.markedContent),
+.textLayer .markedContent span:not(.markedContent) {
+    z-index: 1;
+    --font-height: 0;
+    font-size: calc(var(--text-scale-factor) * var(--font-height));
+    --scale-x: 1;
+    --rotate: 0deg;
+    transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+
+.textLayer .markedContent {
+    display: contents;
+}
+
+.textLayer ::selection {
+    background: rgb(47 111 222 / 0.3);
+}
+
+.textLayer br::selection {
+    background: transparent;
+}
+
+.textLayer .search-hit {
+    background: rgb(255 170 0 / 0.35);
+    border-radius: 2px;
+}
+
+.textLayer .search-hit.is-current {
+    background: rgb(255 90 0 / 0.5);
+    outline: 2px solid rgb(255 90 0 / 0.8);
+}
+
+/* ---- annotation layer ------------------------------------------------- */
+
+.annot-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.annot-highlight,
+.annot-image {
+    position: absolute;
+    transform-origin: 0 100%;
+    transform: rotate(var(--angle, 0rad));
+}
+
+.annot-highlight {
+    mix-blend-mode: multiply;
+}
+
+.hl-yellow { background: var(--hl-yellow); }
+.hl-green { background: var(--hl-green); }
+.hl-pink { background: var(--hl-pink); }
+.hl-blue { background: var(--hl-blue); }
+
+.annot-note {
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 1px solid #c79a00;
+    border-radius: 4px 4px 4px 0;
+    background: #ffd233;
+    font-size: var(--fs-sm);
+    line-height: 1;
+    pointer-events: auto;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+}
+
+.annot-image {
+    pointer-events: auto;
+    cursor: move;
+    touch-action: none;
+}
+
+.annot-image img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    user-select: none;
+}
+
+.resize-handle {
+    position: absolute;
+    right: -6px;
+    bottom: -6px;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+    background: #fff;
+    cursor: nwse-resize;
+    display: none;
+}
+
+.annot-image.is-selected {
+    outline: 2px dashed var(--accent);
+    outline-offset: 2px;
+}
+
+.annot-image.is-selected .resize-handle {
+    display: block;
+}
+
+.annot-highlight.is-selected {
+    outline: 2px dashed var(--accent);
+}
+
+/* ---- tool modes ------------------------------------------------------- */
+
+[data-tool='note'] .page,
+[data-tool='image'] .page {
+    cursor: crosshair;
+}
+
+[data-tool='note'] .textLayer span,
+[data-tool='image'] .textLayer span {
+    cursor: crosshair;
+}
+
+[data-tool='highlight'] .textLayer ::selection {
+    background: var(--hl-yellow);
+}
+
+/* The eraser has to be able to hit highlights, which normally let clicks
+   through to the text layer. */
+[data-tool='eraser'] .annot-layer > * {
+    pointer-events: auto;
+    cursor: not-allowed;
+}
+
+[data-tool='eraser'] .annot-layer > *:hover {
+    outline: 2px solid var(--danger);
+}
+
+/* ---- empty state & drop ----------------------------------------------- */
+
+.empty-state {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: #e6e8ec;
+    text-align: center;
+    padding: 16px;
+}
+
+.empty-state[hidden] {
+    display: none;
+}
+
+.empty-state h1 {
+    margin: 0;
+    font-size: var(--fs-lg);
+    font-weight: 500;
+}
+
+.empty-state .link-button {
+    color: #9cc0ff;
+}
+
+.empty-icon {
+    font-size: 3.5rem;
+    line-height: 1.2;
+}
+
+.shortcut-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 20px;
+    margin: 20px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--fs-sm);
+    color: #c3c8d0;
+}
+
+.shortcut-list kbd {
+    color: var(--text);
+}
+
+.drop-overlay {
+    position: absolute;
+    inset: 12px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    border: 3px dashed #9cc0ff;
+    border-radius: 12px;
+    background: rgb(47 111 222 / 0.25);
+    color: #fff;
+    font-size: var(--fs-lg);
+    pointer-events: none;
+    z-index: 5;
+}
+
+.is-dropping .drop-overlay {
+    display: flex;
+}

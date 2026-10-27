@@ -1,0 +1,23 @@
+{
+  "name": "pdf-reader",
+  "productName": "PDF Reader",
+  "version": "0.1.0",
+  "description": "โปรแกรมอ่าน PDF ที่เบา เร็ว รองรับภาษาไทย ไฮไลต์ คอมเมนต์ เซ็น และจัดการหน้าได้ฟรี",
+  "main": "main/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --devtools",
+    "test": "electron test/smoke.js"
+  },
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "dependencies": {
+    "@fontsource/kanit": "^5.3.0",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^6.4.299"
+  },
+  "devDependencies": {
+    "electron": "^45.0.0"
+  }
+}

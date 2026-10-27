@@ -1,0 +1,140 @@
+'use strict';
+
+const { app, BrowserWindow, dialog, ipcMain, protocol, net, Menu } = require('electron');
+const path = require('node:path');
+const fs = require('node:fs/promises');
+const { pathToFileURL } = require('node:url');
+
+const APP_ROOT = path.join(__dirname, '..');
+
+// Serve the renderer from app://local/ so ES modules, the pdf.js worker and
+// fetch() of cmaps/fonts all work without file:// CORS restrictions.
+protocol.registerSchemesAsPrivileged([
+    { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } },
+]);
+
+let mainWindow = null;
+let isDirty = false;
+let pendingPath = findPdfArg(process.argv);
+
+function findPdfArg(argv) {
+    return argv.slice(1).find((a) => a.toLowerCase().endsWith('.pdf')) || null;
+}
+
+function registerAppProtocol() {
+    protocol.handle('app', (request) => {
+        const { pathname } = new URL(request.url);
+        const target = path.normalize(path.join(APP_ROOT, decodeURIComponent(pathname)));
+        const allowed = [path.join(APP_ROOT, 'src'), path.join(APP_ROOT, 'node_modules')];
+        if (!allowed.some((dir) => target.startsWith(dir + path.sep))) {
+            return new Response('Not found', { status: 404 });
+        }
+        return net.fetch(pathToFileURL(target).toString());
+    });
+}
+
+function createWindow() {
+    mainWindow = new BrowserWindow({
+        width: 1280,
+        height: 860,
+        minWidth: 720,
+        minHeight: 480,
+        backgroundColor: '#3b3f46',
+        show: false,
+        webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
+            contextIsolation: true,
+            nodeIntegration: false,
+            sandbox: true,
+        },
+    });
+    Menu.setApplicationMenu(null);
+    mainWindow.loadURL('app://local/src/index.html');
+    mainWindow.once('ready-to-show', () => mainWindow.show());
+    mainWindow.on('close', (e) => {
+        if (!isDirty) return;
+        const choice = dialog.showMessageBoxSync(mainWindow, {
+            type: 'warning',
+            buttons: ['ปิดโดยไม่บันทึก', 'ยกเลิก'],
+            defaultId: 1,
+            cancelId: 1,
+            message: 'เอกสารมีการแก้ไขที่ยังไม่ได้บันทึก',
+        });
+        if (choice !== 0) e.preventDefault();
+    });
+    mainWindow.webContents.on('will-navigate', (e) => e.preventDefault());
+    mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    if (process.argv.includes('--devtools')) mainWindow.webContents.openDevTools();
+}
+
+async function readPdf(filePath) {
+    const data = await fs.readFile(filePath);
+    return { path: filePath, name: path.basename(filePath), data: new Uint8Array(data) };
+}
+
+// package.json is the version source of truth (also correct when the app
+// is launched through another entry script, e.g. the smoke test).
+ipcMain.handle('app:version', () => require('../package.json').version);
+
+ipcMain.handle('file:pending', async () => {
+    if (!pendingPath) return null;
+    const p = pendingPath;
+    pendingPath = null;
+    return readPdf(p);
+});
+
+ipcMain.handle('file:open-dialog', async (_e, { multiple = false } = {}) => {
+    const res = await dialog.showOpenDialog(mainWindow, {
+        filters: [{ name: 'PDF', extensions: ['pdf'] }],
+        properties: multiple ? ['openFile', 'multiSelections'] : ['openFile'],
+    });
+    if (res.canceled) return [];
+    return Promise.all(res.filePaths.map(readPdf));
+});
+
+ipcMain.handle('file:read', async (_e, filePath) => {
+    if (typeof filePath !== 'string' || !filePath.toLowerCase().endsWith('.pdf')) return null;
+    return readPdf(filePath);
+});
+
+ipcMain.handle('file:save', async (_e, { data, filePath, suggestedName }) => {
+    let target = filePath;
+    if (!target) {
+        const res = await dialog.showSaveDialog(mainWindow, {
+            defaultPath: suggestedName || 'document.pdf',
+            filters: [{ name: 'PDF', extensions: ['pdf'] }],
+        });
+        if (res.canceled || !res.filePath) return null;
+        target = res.filePath;
+    }
+    await fs.writeFile(target, Buffer.from(data));
+    return { path: target, name: path.basename(target) };
+});
+
+ipcMain.on('doc:dirty', (_e, dirty) => {
+    isDirty = Boolean(dirty);
+});
+
+ipcMain.on('window:set-title', (_e, title) => {
+    if (mainWindow && typeof title === 'string') mainWindow.setTitle(title);
+});
+
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+    app.quit();
+} else {
+    app.on('second-instance', async (_e, argv) => {
+        if (!mainWindow) return;
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.focus();
+        const p = findPdfArg(argv);
+        if (p) mainWindow.webContents.send('file:opened', await readPdf(p));
+    });
+
+    app.whenReady().then(() => {
+        registerAppProtocol();
+        createWindow();
+    });
+
+    app.on('window-all-closed', () => app.quit());
+}
