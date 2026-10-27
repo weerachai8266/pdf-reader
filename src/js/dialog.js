@@ -57,6 +57,53 @@ export function confirmDialog({ title, message, okLabel = 'OK' }) {
     });
 }
 
+// Modal progress dialog. Returns { update(text, fraction), close(), cancelled }.
+export function progressDialog(title) {
+    const dlg = $('dlg-progress');
+    const state = { cancelled: false };
+    $('dlg-progress-title').textContent = title;
+    $('dlg-progress-text').textContent = '';
+    $('dlg-progress-bar').removeAttribute('value');
+    const cancel = () => {
+        state.cancelled = true;
+        $('dlg-progress-text').textContent = 'กำลังยกเลิก…';
+    };
+    const onCancelKey = (e) => {
+        e.preventDefault();
+        cancel();
+    };
+    $('dlg-progress-cancel').addEventListener('click', cancel);
+    dlg.addEventListener('cancel', onCancelKey);
+    dlg.showModal();
+    return {
+        get cancelled() {
+            return state.cancelled;
+        },
+        update(text, fraction) {
+            if (state.cancelled) return;
+            $('dlg-progress-text').textContent = text;
+            if (fraction == null) $('dlg-progress-bar').removeAttribute('value');
+            else $('dlg-progress-bar').value = fraction;
+        },
+        close() {
+            $('dlg-progress-cancel').removeEventListener('click', cancel);
+            dlg.removeEventListener('cancel', onCancelKey);
+            dlg.close();
+        },
+    };
+}
+
+// Shows a <dialog> whose form uses method="dialog"; resolves to true when
+// it closes with returnValue "ok".
+export function showFormDialog(id) {
+    const dlg = $(id);
+    dlg.returnValue = '';
+    return new Promise((resolve) => {
+        dlg.addEventListener('close', () => resolve(dlg.returnValue === 'ok'), { once: true });
+        dlg.showModal();
+    });
+}
+
 export async function askPassword(retry) {
     const pw = await promptText({
         title: 'ไฟล์นี้มีรหัสผ่าน',

@@ -26,7 +26,11 @@ function findPdfArg(argv) {
 
 function registerAppProtocol() {
     protocol.handle('app', (request) => {
-        const { pathname } = new URL(request.url);
+        let { pathname } = new URL(request.url);
+        // tesseract.js wants every language file under one folder; each
+        // language package keeps its own, so map /ocr-lang/<lang>.traineddata.gz.
+        const lang = /^\/ocr-lang\/([a-z_]+)\.traineddata\.gz$/.exec(pathname);
+        if (lang) pathname = `/node_modules/@tesseract.js-data/${lang[1]}/4.0.0_best_int/${lang[1]}.traineddata.gz`;
         const target = path.normalize(path.join(APP_ROOT, decodeURIComponent(pathname)));
         const allowed = [path.join(APP_ROOT, 'src'), path.join(APP_ROOT, 'node_modules')];
         if (!allowed.some((dir) => target.startsWith(dir + path.sep))) {

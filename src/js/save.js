@@ -13,7 +13,7 @@ const NOTE_COLOR = [1, 0.82, 0.2];
 const NON_LATIN1 = /[^\u0000-\u00ff]/;
 
 // Bytes of a source with any filled-in form values written by pdf.js.
-async function sourceBytes(src) {
+export async function sourceBytes(src) {
     return src.pdf.annotationStorage.size > 0 ? src.pdf.saveDocument() : src.bytes;
 }
 
@@ -51,7 +51,7 @@ export async function buildPdf() {
         return { data: await sourceBytes(firstSrc), warnings: [] };
     }
 
-    const lib = await import('../../node_modules/pdf-lib/dist/pdf-lib.esm.min.js');
+    const lib = await loadPdfLib();
     const { PDFDocument } = lib;
 
     const docs = new Map();
@@ -133,11 +133,8 @@ async function fixNonLatinAppearances(lib, doc) {
     });
     if (!targets.length) return [];
 
-    const fontBytes = await window.host.thaiFont();
-    if (!fontBytes) return ['ไม่พบฟอนต์ภาษาไทยในเครื่อง ข้อความไทยในฟอร์มอาจแสดงไม่ถูกต้องในโปรแกรมอื่น'];
-    await loadFontkit();
-    doc.registerFontkit(self.fontkit);
-    const font = await doc.embedFont(fontBytes, { subset: true });
+    const font = await embedThaiFont(doc);
+    if (!font) return ['ไม่พบฟอนต์ภาษาไทยในเครื่อง ข้อความไทยในฟอร์มอาจแสดงไม่ถูกต้องในโปรแกรมอื่น'];
 
     const failed = [];
     for (const field of targets) {
@@ -149,6 +146,19 @@ async function fixNonLatinAppearances(lib, doc) {
         }
     }
     return failed.length ? [`สร้างหน้าตาช่อง ${failed.join(', ')} ไม่สำเร็จ`] : [];
+}
+
+// Subset of Windows' Tahoma embedded in doc, or null if the font is missing.
+export async function embedThaiFont(doc) {
+    const fontBytes = await window.host.thaiFont();
+    if (!fontBytes) return null;
+    await loadFontkit();
+    doc.registerFontkit(self.fontkit);
+    return doc.embedFont(fontBytes, { subset: true });
+}
+
+export function loadPdfLib() {
+    return import('../../node_modules/pdf-lib/dist/pdf-lib.esm.min.js');
 }
 
 let fontkitPromise = null;

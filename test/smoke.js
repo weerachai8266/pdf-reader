@@ -160,6 +160,7 @@ async function run() {
 
     await testForms(win, js);
     await testPrint(win, js);
+    await testOcr(win, js);
 
     console.log(`\nscreenshot: ${shot}\noutput dir: ${outDir}`);
     const failed = results.filter((r) => !r.ok).length;
@@ -298,6 +299,71 @@ async function testPrint(win, js) {
         check('print has one sheet per page', doc.getPageCount() === 2, String(doc.getPageCount()));
     }
     check('app not busy after print', await waitFor(win, `!document.body.classList.contains('is-busy')`));
+}
+
+// An image-only PDF, like a scanner produces: Thai + English text drawn
+// into a picture, no text layer at all.
+async function makeScannedPdf(file) {
+    const win = new BrowserWindow({ show: false, width: 900, height: 700, useContentSize: true });
+    const html = `<!doctype html><meta charset="utf-8"><style>
+        body{margin:60px;font-family:Tahoma;font-size:30px;line-height:1.8;color:#111;background:#fff}</style>
+        <p>ใบแจ้งหนี้ เลขที่ 2569/0457</p>
+        <p>บริษัท ตัวอย่างการค้า จำกัด</p>
+        <p>ยอดรวมทั้งสิ้น 1,250.50 บาท</p>
+        <p>กรุณาชำระภายในวันที่ 15 พฤศจิกายน</p>
+        <p>Invoice total amount due</p>`;
+    await win.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+    await sleep(300);
+    const image = await win.capturePage();
+    const png = image.toPNG();
+    const { width, height } = image.getSize();
+    win.destroy();
+    const { PDFDocument } = await import('pdf-lib');
+    const doc = await PDFDocument.create();
+    const page = doc.addPage([595, 842]);
+    const img = await doc.embedPng(png);
+    // Keep the capture's aspect ratio (top of an A4 page, like a scan).
+    const w = 595;
+    const h = (w * height) / width;
+    page.drawImage(img, { x: 0, y: 842 - h, width: w, height: h });
+    fs.writeFileSync(file, await doc.save());
+}
+
+async function testOcr(win, js) {
+    const scanned = path.join(outDir, 'scanned.pdf');
+    const ocrSaved = path.join(outDir, 'scanned-ocr.pdf');
+    await makeScannedPdf(scanned);
+    win.webContents.send('file:opened', { path: scanned, name: 'scanned.pdf', data: new Uint8Array(fs.readFileSync(scanned)) });
+    check('scanned file hint shown', await waitFor(win, `document.getElementById('toast').textContent.includes('ภาพสแกน')`));
+
+    const started = Date.now();
+    await js(`document.querySelector('[data-action="ocr"]').click()`);
+    await waitFor(win, `document.getElementById('dlg-ocr').open`);
+    await js(`document.querySelector('#dlg-ocr button[value="ok"]').click()`);
+    const finished = await waitFor(win, `!document.getElementById('dlg-progress').open && /OCR (เสร็จ|ไม่สำเร็จ)/.test(document.getElementById('toast').textContent)`, 120000);
+    check('OCR finished', finished, `${((Date.now() - started) / 1000).toFixed(1)}s — ${await js(`document.getElementById('toast').textContent`)}`);
+
+    const search = async (q) => {
+        await js(`(() => { document.querySelector('[data-action="show-search"]').click();
+            const i = document.getElementById('search-input'); i.value = ${JSON.stringify(q)}; i.dispatchEvent(new Event('input')); })()`);
+        await waitFor(win, `document.getElementById('search-status').textContent !== '' && !document.getElementById('search-status').textContent.startsWith('กำลัง')`);
+        await sleep(400);
+        return js(`document.querySelectorAll('#search-results li').length`);
+    };
+    for (const q of ['ใบแจ้งหนี้', 'บริษัท', '1,250.50', 'Invoice']) {
+        check(`OCR text searchable: ${q}`, (await search(q)) >= 1);
+    }
+    check('OCR marks document changed', await js(`document.title.startsWith('●')`));
+    fs.writeFileSync(path.join(outDir, 'ocr.png'), (await win.capturePage()).toPNG());
+    console.log('  OCR text layer:', await js(`document.querySelector('.textLayer')?.textContent.slice(0, 200)`));
+
+    if (await saveAs(js, ocrSaved)) {
+        win.webContents.send('file:opened', { path: ocrSaved, name: 'scanned-ocr.pdf', data: new Uint8Array(fs.readFileSync(ocrSaved)) });
+        await waitFor(win, `document.getElementById('file-name').textContent === 'scanned-ocr.pdf'`);
+        check('saved OCR file keeps text layer', await waitFor(win, `document.querySelector('.textLayer')?.textContent.includes('บริษัท')`));
+    } else {
+        check('saved OCR file', false);
+    }
 }
 
 app.whenReady().then(() => run().catch((err) => {

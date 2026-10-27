@@ -57,12 +57,21 @@ const checks = [
     ['text or form fields present', `document.querySelector('.textLayer')?.textContent.length > 0 || !!document.querySelector('.annotationLayer input')`],
     ['logo loads', `document.querySelector('.empty-logo').complete && document.querySelector('.empty-logo').naturalWidth > 0`],
     ['version shown', `document.getElementById('app-version').textContent.startsWith('v')`],
-];
+].filter(([name]) => !(process.argv.includes('--ocr') && name.startsWith('text'))); // scans have no text yet
 let failed = 0;
 for (const [name, expr] of checks) {
     const ok = await waitFor(expr);
     if (!ok) failed++;
     console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}`);
+}
+// --ocr: run Recognize Text on the (scanned) file and expect a text layer.
+if (process.argv.includes('--ocr')) {
+    await evaluate(`document.querySelector('[data-action="ocr"]').click()`);
+    await waitFor(`document.getElementById('dlg-ocr').open`);
+    await evaluate(`document.querySelector('#dlg-ocr button[value="ok"]').click()`);
+    const ok = await waitFor(`/OCR เสร็จ/.test(document.getElementById('toast').textContent) && document.querySelector('.textLayer')?.textContent.length > 0`, 120000);
+    if (!ok) failed++;
+    console.log(`${ok ? 'PASS' : 'FAIL'}  OCR in packaged build`, await evaluate(`document.getElementById('toast').textContent`));
 }
 console.log('version:', await evaluate(`document.getElementById('app-version').textContent`));
 console.log('font:', await evaluate(`getComputedStyle(document.body).fontFamily`));

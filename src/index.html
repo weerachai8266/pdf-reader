@@ -61,6 +61,7 @@
             <button type="button" data-tool="note" data-needs-doc aria-pressed="false" title="Add note (N) — click on the page">💬 Note</button>
             <button type="button" data-action="signature" data-needs-doc title="Fill &amp; Sign">✍ Sign</button>
             <button type="button" data-tool="eraser" data-needs-doc aria-pressed="false" title="Eraser — click a highlight, note or signature">🧽 Eraser</button>
+            <button type="button" data-action="ocr" data-needs-doc title="Recognize Text (OCR) — make scanned pages searchable">🔤 OCR</button>
         </div>
 
         <div class="tool-group tool-group-end">
@@ -149,6 +150,34 @@
                 <button value="ok" class="primary" id="dlg-confirm-ok">OK</button>
             </div>
         </form>
+    </dialog>
+
+    <dialog id="dlg-ocr">
+        <form method="dialog" id="dlg-ocr-form">
+            <h2>Recognize Text (OCR)</h2>
+            <p class="dialog-hint">อ่านข้อความจากภาพสแกน แล้วฝังเป็นข้อความที่มองไม่เห็นทับไว้ หน้าตาเอกสารจะเหมือนเดิม แต่ค้นหาและคัดลอกข้อความได้ (ภาษาไทย + อังกฤษ)</p>
+            <fieldset class="option-group">
+                <legend>หน้าที่จะทำ</legend>
+                <label><input type="radio" name="ocr-scope" value="all" checked> ทุกหน้า</label>
+                <label><input type="radio" name="ocr-scope" value="current"> เฉพาะหน้าปัจจุบัน</label>
+            </fieldset>
+            <label class="option-row"><input type="checkbox" id="ocr-skip-text" checked> ข้ามหน้าที่มีข้อความอยู่แล้ว</label>
+            <div class="dialog-actions">
+                <span class="spacer"></span>
+                <button value="cancel" class="secondary">Cancel</button>
+                <button value="ok" class="primary">Recognize Text</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="dlg-progress">
+        <h2 id="dlg-progress-title"></h2>
+        <progress id="dlg-progress-bar" max="1" value="0"></progress>
+        <p class="dialog-hint" id="dlg-progress-text"></p>
+        <div class="dialog-actions">
+            <span class="spacer"></span>
+            <button type="button" class="secondary" id="dlg-progress-cancel">Cancel</button>
+        </div>
     </dialog>
 
     <dialog id="dlg-signature" class="dialog-wide">

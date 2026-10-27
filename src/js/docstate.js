@@ -48,6 +48,19 @@ export function addSource({ name, bytes, pdf }, insertAt = state.pages.length) {
     return entries;
 }
 
+// Swap a source's bytes/document (e.g. after OCR added a text layer).
+// Page entries and annotations stay as they are.
+export function replaceSource(srcId, { bytes, pdf }) {
+    const src = state.sources.get(srcId);
+    const old = src.pdf;
+    src.bytes = bytes;
+    src.pdf = pdf;
+    src.fieldObjects = null;
+    setDirty(true);
+    emit('source-replaced', srcId);
+    old.loadingTask.destroy();
+}
+
 export function getPdfPage(entry) {
     return state.sources.get(entry.srcId).pdf.getPage(entry.index + 1);
 }

@@ -43,6 +43,10 @@ export function initSearch() {
     });
     on('text-layer-rendered', (view) => applyMarks(view));
     on('pages-changed', () => runSearch(input.value));
+    on('source-replaced', (srcId) => {
+        for (const key of textCache.keys()) if (key.startsWith(`${srcId}:`)) textCache.delete(key);
+        runSearch(input.value);
+    });
 }
 
 export function focusSearch() {

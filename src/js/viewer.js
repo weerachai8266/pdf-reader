@@ -36,6 +36,13 @@ export function initViewer(scrollEl, pagesContainer) {
         if (zoomMode !== 'custom' && views.size) applyZoom(zoomForMode(zoomMode), zoomMode);
     })).observe(scroller);
     on('pages-changed', () => rebuild());
+    on('source-replaced', (srcId) => {
+        for (const view of views.values()) {
+            if (view.entry.srcId !== srcId) continue;
+            releaseView(view);
+            if (view.visible) renderView(view);
+        }
+    });
 }
 
 const sizeKey = (entry) => `${entry.srcId}:${entry.index}`;

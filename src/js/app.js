@@ -14,6 +14,8 @@ import { buildPdf } from './save.js';
 import { cleanCopiedText } from './thai.js';
 import { initUpdateNotice } from './update.js';
 import { resetLinkServices } from './links.js';
+import { recognizeText } from './recognize.js';
+import { pageHasText } from './ocr.js';
 
 const $ = (id) => document.getElementById(id);
 const APP_NAME = 'PDF Reader';
@@ -86,7 +88,7 @@ async function openFile(file) {
         await rebuild();
         scrollToIndex(0);
         updateUi();
-        announceForm(pdf);
+        announceDocument(pdf);
     } catch (err) {
         reportLoadError(err, file.name);
     } finally {
@@ -94,9 +96,14 @@ async function openFile(file) {
     }
 }
 
-async function announceForm(pdf) {
+// One hint on open: fillable form, or scanned pages that need OCR.
+async function announceDocument(pdf) {
     const fields = await pdf.getFieldObjects().catch(() => null);
-    if (fields && Object.keys(fields).length) toast('เอกสารนี้มีฟอร์ม คลิกที่ช่องเพื่อกรอก แล้วกด Ctrl+S เพื่อบันทึก');
+    if (fields && Object.keys(fields).length) {
+        toast('เอกสารนี้มีฟอร์ม คลิกที่ช่องเพื่อกรอก แล้วกด Ctrl+S เพื่อบันทึก');
+    } else if (state.pages.length && !(await pageHasText(state.pages[0]).catch(() => true))) {
+        toast('ไฟล์นี้เป็นภาพสแกน กดปุ่ม OCR เพื่อให้ค้นหาและคัดลอกข้อความได้');
+    }
 }
 
 async function mergeFiles() {
@@ -219,6 +226,7 @@ const actions = {
     'first-page': () => scrollToIndex(0),
     'last-page': () => scrollToIndex(state.pages.length - 1),
     signature: openSignatureDialog,
+    ocr: recognizeText,
     'tool-select': () => setTool('select'),
     'tool-highlight': () => setTool('highlight'),
     'tool-note': () => setTool('note'),
