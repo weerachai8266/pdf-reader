@@ -24,6 +24,18 @@ function check(name, ok, detail = '') {
 let nextSavePath = savedPdf;
 dialog.showSaveDialog = async () => ({ canceled: false, filePath: nextSavePath });
 
+// Printing is redirected to a PDF file so the test can inspect the job
+// without a printer or the Windows print dialog.
+const printOut = path.join(outDir, 'printed.pdf');
+app.on('web-contents-created', (_e, wc) => {
+    wc.print = (_options, callback) => {
+        wc.printToPDF({ margins: { marginType: 'none' }, pageSize: 'A4' }).then((buf) => {
+            fs.writeFileSync(printOut, buf);
+            callback(true, '');
+        }, (err) => callback(false, String(err)));
+    };
+});
+
 // main.js must be loaded before the app is ready (it registers app://).
 require('../main/main.js');
 
@@ -147,6 +159,7 @@ async function run() {
     }
 
     await testForms(win, js);
+    await testPrint(win, js);
 
     console.log(`\nscreenshot: ${shot}\noutput dir: ${outDir}`);
     const failed = results.filter((r) => !r.ok).length;
@@ -261,8 +274,30 @@ async function testForms(win, js) {
     // Reopen the filled file; the thumbnail shows the generated appearance.
     win.webContents.send('file:opened', { path: filledPdf, name: 'form-filled.pdf', data: new Uint8Array(fs.readFileSync(filledPdf)) });
     check('filled form reopens with value', await waitFor(win, `document.querySelector('.textWidgetAnnotation input')?.value === ${JSON.stringify(THAI)}`));
+    await sleep(500);
+    check('opening a form does not mark it changed', await js(`!document.title.startsWith('●')`));
     await sleep(1200);
     fs.writeFileSync(path.join(outDir, 'form.png'), (await win.capturePage()).toPNG());
+}
+
+async function testPrint(win, js) {
+    // saved.pdf: 2 pages, page 1 rotated to landscape, with highlight + note.
+    win.webContents.send('file:opened', { path: savedPdf, name: 'saved.pdf', data: new Uint8Array(fs.readFileSync(savedPdf)) });
+    await waitFor(win, `document.getElementById('file-name').textContent === 'saved.pdf' && !!document.querySelector('.page canvas')`);
+    await js(`document.querySelector('[data-action="print"]').click()`);
+    let printed = false;
+    for (let t = 0; t < 150 && !printed; t++) {
+        printed = fs.existsSync(printOut) && fs.statSync(printOut).size > 0;
+        await sleep(200);
+    }
+    check('print job produced', printed);
+    if (printed) {
+        const { PDFDocument } = await import('pdf-lib');
+        await sleep(300);
+        const doc = await PDFDocument.load(fs.readFileSync(printOut));
+        check('print has one sheet per page', doc.getPageCount() === 2, String(doc.getPageCount()));
+    }
+    check('app not busy after print', await waitFor(win, `!document.body.classList.contains('is-busy')`));
 }
 
 app.whenReady().then(() => run().catch((err) => {

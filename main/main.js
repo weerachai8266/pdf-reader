@@ -1,10 +1,12 @@
 'use strict';
 
-const { app, BrowserWindow, dialog, ipcMain, protocol, net, Menu, shell } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, protocol, net, shell } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
 const { initUpdater } = require('./updater');
+const { buildMenu } = require('./menu');
+const { initPrint } = require('./print');
 
 const APP_ROOT = path.join(__dirname, '..');
 
@@ -50,14 +52,13 @@ function createWindow() {
             sandbox: true,
         },
     });
-    Menu.setApplicationMenu(null);
     mainWindow.loadURL('app://local/src/index.html');
     mainWindow.once('ready-to-show', () => mainWindow.show());
     mainWindow.on('close', (e) => {
         if (!isDirty) return;
         const choice = dialog.showMessageBoxSync(mainWindow, {
             type: 'warning',
-            buttons: ['ปิดโดยไม่บันทึก', 'ยกเลิก'],
+            buttons: ["Don't Save", 'Cancel'],
             defaultId: 1,
             cancelId: 1,
             message: 'เอกสารมีการแก้ไขที่ยังไม่ได้บันทึก',
@@ -149,7 +150,9 @@ if (!gotLock) {
     app.whenReady().then(() => {
         registerAppProtocol();
         createWindow();
-        initUpdater(() => mainWindow);
+        initPrint();
+        const updater = initUpdater(() => mainWindow);
+        buildMenu(() => mainWindow, { checkForUpdates: () => updater.checkNow() });
     });
 
     app.on('window-all-closed', () => app.quit());

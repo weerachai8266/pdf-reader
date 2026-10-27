@@ -2,7 +2,7 @@
 // the viewer, annotation, search and save modules.
 
 import { on } from './bus.js';
-import { loadPdf } from './pdfjs.js';
+import { loadPdf, pdfjsLib, passwordOf } from './pdfjs.js';
 import { state, resetDocument, addSource, hasDocument, setDirty, pagesChanged } from './docstate.js';
 import { initViewer, rebuild, clearViewer, setZoom, zoomIn, zoomOut, scrollToIndex, currentPageIndex } from './viewer.js';
 import { initAnnotate, setTool, setHighlightColor } from './annotate.js';
@@ -29,6 +29,7 @@ async function init() {
     bindKeyboard(scroller);
     bindDragDrop();
     bindCopy();
+    bindFormEdits(scroller);
     initUpdateNotice();
 
     on('dirty-changed', updateTitle);
@@ -64,7 +65,7 @@ async function confirmDiscard() {
     return confirmDialog({
         title: 'ยังไม่ได้บันทึก',
         message: 'เอกสารนี้มีการแก้ไขที่ยังไม่ได้บันทึก ต้องการทิ้งการแก้ไขหรือไม่?',
-        okLabel: 'ทิ้งการแก้ไข',
+        okLabel: 'Discard',
     });
 }
 
@@ -152,6 +153,28 @@ async function save(asNew) {
     }
 }
 
+async function printDocument() {
+    const [first] = state.sources.values();
+    const perms = await first.pdf.getPermissions().catch(() => null);
+    if (perms && !perms.includes(pdfjsLib.PermissionFlag.PRINT)) {
+        toast('เจ้าของเอกสารไม่อนุญาตให้พิมพ์ไฟล์นี้', 'error');
+        return;
+    }
+    setBusy(true);
+    toast('กำลังเตรียมพิมพ์…');
+    try {
+        // Print exactly what Save would write: forms, highlights, signatures.
+        const { data } = await buildPdf();
+        const result = await window.host.print({ data, password: passwordOf(first.pdf), title: state.fileName });
+        if (!result.ok && !result.cancelled) toast(`พิมพ์ไม่สำเร็จ: ${result.error || ''}`, 'error');
+    } catch (err) {
+        console.error(err);
+        toast(`พิมพ์ไม่สำเร็จ: ${err?.message || err}`, 'error');
+    } finally {
+        setBusy(false);
+    }
+}
+
 // ---- UI ---------------------------------------------------------------
 
 function updateTitle() {
@@ -175,28 +198,52 @@ function setBusy(busy) {
     document.body.classList.toggle('is-busy', busy);
 }
 
+// Commands shared by toolbar buttons (data-action) and the app menu.
+// Those in DOC_COMMANDS do nothing until a document is open.
+const actions = {
+    open: openDialog,
+    merge: mergeFiles,
+    save: () => save(false),
+    'save-as': () => save(true),
+    print: printDocument,
+    find: () => {
+        showPanel('search');
+        focusSearch();
+    },
+    'zoom-in': zoomIn,
+    'zoom-out': zoomOut,
+    'fit-width': () => setZoom('width'),
+    'fit-page': () => setZoom('page'),
+    'prev-page': () => scrollToIndex(currentPageIndex() - 1),
+    'next-page': () => scrollToIndex(currentPageIndex() + 1),
+    'first-page': () => scrollToIndex(0),
+    'last-page': () => scrollToIndex(state.pages.length - 1),
+    signature: openSignatureDialog,
+    'tool-select': () => setTool('select'),
+    'tool-highlight': () => setTool('highlight'),
+    'tool-note': () => setTool('note'),
+    'tool-eraser': () => setTool('eraser'),
+    'toggle-sidebar': () => document.body.classList.toggle('sidebar-hidden'),
+    'show-thumbs': () => showPanel('thumbs'),
+    'show-search': () => {
+        showPanel('search');
+        focusSearch();
+    },
+};
+const ALWAYS_AVAILABLE = new Set(['open', 'toggle-sidebar']);
+
+function runCommand(name) {
+    if (!actions[name]) return;
+    if (!ALWAYS_AVAILABLE.has(name) && !hasDocument()) return;
+    actions[name]();
+}
+
 function bindToolbar() {
-    const actions = {
-        open: openDialog,
-        merge: mergeFiles,
-        save: () => save(false),
-        'save-as': () => save(true),
-        'zoom-in': zoomIn,
-        'zoom-out': zoomOut,
-        'prev-page': () => scrollToIndex(currentPageIndex() - 1),
-        'next-page': () => scrollToIndex(currentPageIndex() + 1),
-        signature: openSignatureDialog,
-        'toggle-sidebar': () => document.body.classList.toggle('sidebar-hidden'),
-        'show-thumbs': () => showPanel('thumbs'),
-        'show-search': () => {
-            showPanel('search');
-            focusSearch();
-        },
-    };
+    window.host.onMenuCommand(runCommand);
     document.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-action], [data-tool], [data-color]');
         if (!btn || btn.disabled || btn.closest('#thumbs')) return;
-        if (btn.dataset.action && actions[btn.dataset.action]) actions[btn.dataset.action]();
+        if (btn.dataset.action && actions[btn.dataset.action]) runCommand(btn.dataset.action);
         else if (btn.dataset.tool) setTool(btn.dataset.tool);
         else if (btn.dataset.color) {
             document.querySelectorAll('[data-color]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
@@ -232,12 +279,12 @@ function bindKeyboard(scroller) {
         } else if (ctrl && e.key.toLowerCase() === 's') {
             e.preventDefault();
             save(e.shiftKey);
+        } else if (ctrl && e.key.toLowerCase() === 'p') {
+            e.preventDefault();
+            runCommand('print');
         } else if (ctrl && e.key.toLowerCase() === 'f') {
             e.preventDefault();
-            if (hasDocument()) {
-                showPanel('search');
-                focusSearch();
-            }
+            runCommand('find');
         } else if (ctrl && (e.key === '=' || e.key === '+')) {
             e.preventDefault();
             zoomIn();
@@ -271,6 +318,18 @@ function bindKeyboard(scroller) {
         if (e.deltaY < 0) zoomIn();
         else zoomOut();
     }, { passive: false });
+}
+
+// A form edit by the user marks the document as changed. (pdf.js'
+// annotationStorage.onSetModified can't be used: rendering a form already
+// writes default radio values into storage, so merely opening a form would
+// look like an edit.)
+function bindFormEdits(scroller) {
+    const markDirty = (e) => {
+        if (e.target.closest('.annotationLayer')) setDirty(true);
+    };
+    scroller.addEventListener('input', markDirty);
+    scroller.addEventListener('change', markDirty);
 }
 
 // Copying from the text layer: fix SARA AM, strip stray NULs and

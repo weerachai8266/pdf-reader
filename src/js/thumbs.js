@@ -85,9 +85,9 @@ function rebuildThumbs() {
             <div class="thumb-bar">
                 <span class="thumb-num">${idx + 1}</span>
                 <span class="thumb-actions">
-                    <button type="button" data-action="rotate-left" title="หมุนซ้าย">⟲</button>
-                    <button type="button" data-action="rotate-right" title="หมุนขวา">⟳</button>
-                    <button type="button" data-action="delete" title="ลบหน้านี้">🗑</button>
+                    <button type="button" data-action="rotate-left" title="Rotate left">⟲</button>
+                    <button type="button" data-action="rotate-right" title="Rotate right">⟳</button>
+                    <button type="button" data-action="delete" title="Delete page">🗑</button>
                 </span>
             </div>`;
         const cached = rendered.get(`${entry.key}:${entry.rotation}`);

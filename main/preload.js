@@ -14,4 +14,6 @@ contextBridge.exposeInMainWorld('host', {
     onFileOpened: (cb) => ipcRenderer.on('file:opened', (_e, file) => cb(file)),
     onUpdateStatus: (cb) => ipcRenderer.on('update:status', (_e, status) => cb(status)),
     installUpdate: () => ipcRenderer.invoke('update:install'),
+    print: (job) => ipcRenderer.invoke('print:document', job),
+    onMenuCommand: (cb) => ipcRenderer.on('menu:command', (_e, command) => cb(command)),
 });

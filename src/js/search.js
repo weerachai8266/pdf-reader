@@ -238,8 +238,8 @@ function renderPager(pager, pages) {
         if (active) b.className = 'is-active';
         return b;
     };
-    pager.append(btn('‹ ก่อนหน้า', listPage - 1, listPage === 0));
+    pager.append(btn('‹ Prev', listPage - 1, listPage === 0));
     const first = Math.max(0, Math.min(listPage - 2, pages - 5));
     for (let p = first; p < Math.min(pages, first + 5); p++) pager.append(btn(String(p + 1), p, false, p === listPage));
-    pager.append(btn('ถัดไป ›', listPage + 1, listPage >= pages - 1));
+    pager.append(btn('Next ›', listPage + 1, listPage >= pages - 1));
 }

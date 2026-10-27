@@ -19,6 +19,7 @@ export function loadPdf(bytes, askPassword) {
         isEvalSupported: false,
         enableXfa: false,
     });
+    let password = null;
     task.onPassword = async (update, reason) => {
         const retry = reason === pdfjsLib.PasswordResponses.INCORRECT_PASSWORD;
         const pw = await askPassword(retry);
@@ -26,7 +27,17 @@ export function loadPdf(bytes, askPassword) {
             task.destroy();
             return;
         }
+        password = pw;
         update(pw);
     };
-    return task.promise;
+    return task.promise.then((pdf) => {
+        passwords.set(pdf, password);
+        return pdf;
+    });
+}
+
+// Password the user typed to open a document (needed to print it again).
+const passwords = new WeakMap();
+export function passwordOf(pdf) {
+    return passwords.get(pdf) ?? null;
 }

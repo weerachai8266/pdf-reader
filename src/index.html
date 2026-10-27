@@ -15,27 +15,28 @@
 <body data-tool="select">
     <header class="toolbar" id="toolbar">
         <div class="tool-group">
-            <button type="button" data-action="toggle-sidebar" title="แสดง/ซ่อนแถบข้าง">☰</button>
-            <button type="button" data-action="open" title="เปิดไฟล์ (Ctrl+O)">📂 เปิด</button>
-            <button type="button" data-action="merge" data-needs-doc title="เพิ่มไฟล์ PDF ต่อท้าย">➕ รวมไฟล์</button>
-            <button type="button" data-action="save" data-needs-doc title="บันทึก (Ctrl+S)">💾 บันทึก</button>
-            <button type="button" data-action="save-as" data-needs-doc title="บันทึกเป็นไฟล์ใหม่ (Ctrl+Shift+S)">บันทึกเป็น…</button>
+            <button type="button" data-action="toggle-sidebar" title="Show/hide sidebar">☰</button>
+            <button type="button" data-action="open" title="Open (Ctrl+O)">📂 Open</button>
+            <button type="button" data-action="merge" data-needs-doc title="Combine files">➕ Combine</button>
+            <button type="button" data-action="save" data-needs-doc title="Save (Ctrl+S)">💾 Save</button>
+            <button type="button" data-action="save-as" data-needs-doc title="Save As (Ctrl+Shift+S)">Save As…</button>
+            <button type="button" data-action="print" data-needs-doc title="Print (Ctrl+P)">🖨 Print</button>
         </div>
 
         <div class="tool-group">
-            <button type="button" data-action="prev-page" data-needs-doc title="หน้าก่อน">‹</button>
+            <button type="button" data-action="prev-page" data-needs-doc title="Previous page">‹</button>
             <label class="page-nav">
-                <input id="page-input" type="number" min="1" value="1" data-needs-doc aria-label="หน้าที่">
+                <input id="page-input" type="number" min="1" value="1" data-needs-doc aria-label="Page number">
                 <span>/ <span id="page-count">0</span></span>
             </label>
-            <button type="button" data-action="next-page" data-needs-doc title="หน้าถัดไป">›</button>
+            <button type="button" data-action="next-page" data-needs-doc title="Next page">›</button>
         </div>
 
         <div class="tool-group">
-            <button type="button" data-action="zoom-out" data-needs-doc title="ย่อ (Ctrl+-)">−</button>
-            <select id="zoom-select" data-needs-doc aria-label="ขนาดการแสดงผล">
-                <option value="width">พอดีความกว้าง</option>
-                <option value="page">พอดีทั้งหน้า</option>
+            <button type="button" data-action="zoom-out" data-needs-doc title="Zoom out (Ctrl+-)">−</button>
+            <select id="zoom-select" data-needs-doc aria-label="Zoom">
+                <option value="width">Fit Width</option>
+                <option value="page">Fit Page</option>
                 <option value="0.5">50%</option>
                 <option value="0.75">75%</option>
                 <option value="1">100%</option>
@@ -43,35 +44,35 @@
                 <option value="1.5">150%</option>
                 <option value="2">200%</option>
                 <option value="3">300%</option>
-                <option data-custom hidden value="custom">กำหนดเอง</option>
+                <option data-custom hidden value="custom">Custom</option>
             </select>
-            <button type="button" data-action="zoom-in" data-needs-doc title="ขยาย (Ctrl++)">+</button>
+            <button type="button" data-action="zoom-in" data-needs-doc title="Zoom in (Ctrl++)">+</button>
         </div>
 
         <div class="tool-group">
-            <button type="button" data-tool="select" data-needs-doc aria-pressed="true" title="เลือกข้อความ (V)">🖱 เลือก</button>
-            <button type="button" data-tool="highlight" data-needs-doc aria-pressed="false" title="ไฮไลต์ (H) — ลากเลือกข้อความ">🖍 ไฮไลต์</button>
-            <span class="color-swatches" role="group" aria-label="สีไฮไลต์">
-                <button type="button" class="swatch swatch-yellow" data-color="yellow" data-needs-doc aria-pressed="true" title="เหลือง"></button>
-                <button type="button" class="swatch swatch-green" data-color="green" data-needs-doc aria-pressed="false" title="เขียว"></button>
-                <button type="button" class="swatch swatch-pink" data-color="pink" data-needs-doc aria-pressed="false" title="ชมพู"></button>
-                <button type="button" class="swatch swatch-blue" data-color="blue" data-needs-doc aria-pressed="false" title="ฟ้า"></button>
+            <button type="button" data-tool="select" data-needs-doc aria-pressed="true" title="Select text (V)">🖱 Select</button>
+            <button type="button" data-tool="highlight" data-needs-doc aria-pressed="false" title="Highlight (H) — drag across text">🖍 Highlight</button>
+            <span class="color-swatches" role="group" aria-label="Highlight color">
+                <button type="button" class="swatch swatch-yellow" data-color="yellow" data-needs-doc aria-pressed="true" title="Yellow"></button>
+                <button type="button" class="swatch swatch-green" data-color="green" data-needs-doc aria-pressed="false" title="Green"></button>
+                <button type="button" class="swatch swatch-pink" data-color="pink" data-needs-doc aria-pressed="false" title="Pink"></button>
+                <button type="button" class="swatch swatch-blue" data-color="blue" data-needs-doc aria-pressed="false" title="Blue"></button>
             </span>
-            <button type="button" data-tool="note" data-needs-doc aria-pressed="false" title="โน้ต (N) — คลิกบนหน้า">💬 โน้ต</button>
-            <button type="button" data-action="signature" data-needs-doc title="เซ็นเอกสาร">✍ เซ็น</button>
-            <button type="button" data-tool="eraser" data-needs-doc aria-pressed="false" title="ลบไฮไลต์/โน้ต/ลายเซ็น — คลิกที่รายการ">🧽 ลบ</button>
+            <button type="button" data-tool="note" data-needs-doc aria-pressed="false" title="Add note (N) — click on the page">💬 Note</button>
+            <button type="button" data-action="signature" data-needs-doc title="Fill &amp; Sign">✍ Sign</button>
+            <button type="button" data-tool="eraser" data-needs-doc aria-pressed="false" title="Eraser — click a highlight, note or signature">🧽 Eraser</button>
         </div>
 
         <div class="tool-group tool-group-end">
-            <button type="button" data-action="show-search" data-needs-doc title="ค้นหา (Ctrl+F)">🔍 ค้นหา</button>
+            <button type="button" data-action="show-search" data-needs-doc title="Find (Ctrl+F)">🔍 Find</button>
         </div>
     </header>
 
     <div class="workspace">
         <aside class="sidebar">
             <div class="sidebar-tabs" role="tablist">
-                <button type="button" role="tab" data-action="show-thumbs" data-panel-tab="thumbs" aria-selected="true">หน้า</button>
-                <button type="button" role="tab" data-action="show-search" data-panel-tab="search" aria-selected="false">ค้นหา</button>
+                <button type="button" role="tab" data-action="show-thumbs" data-panel-tab="thumbs" aria-selected="true">Pages</button>
+                <button type="button" role="tab" data-action="show-search" data-panel-tab="search" aria-selected="false">Find</button>
             </div>
 
             <section class="panel" data-panel="thumbs">
@@ -81,14 +82,14 @@
 
             <section class="panel" data-panel="search" hidden>
                 <div class="search-box">
-                    <input id="search-input" type="search" placeholder="พิมพ์คำที่ต้องการค้นหา" aria-label="ค้นหา">
-                    <button type="button" id="search-prev" title="ก่อนหน้า (Shift+Enter)">↑</button>
-                    <button type="button" id="search-next" title="ถัดไป (Enter)">↓</button>
+                    <input id="search-input" type="search" placeholder="พิมพ์คำที่ต้องการค้นหา" aria-label="Find">
+                    <button type="button" id="search-prev" title="Previous (Shift+Enter)">↑</button>
+                    <button type="button" id="search-next" title="Next (Enter)">↓</button>
                 </div>
                 <p class="search-status" id="search-status"></p>
                 <p class="empty-hint" id="search-empty" hidden>ไม่พบข้อความนี้ในเอกสาร</p>
                 <ol class="search-results" id="search-results"></ol>
-                <nav class="pager" id="search-pager" aria-label="หน้าผลการค้นหา"></nav>
+                <nav class="pager" id="search-pager" aria-label="Result pages"></nav>
             </section>
         </aside>
 
@@ -97,7 +98,7 @@
             <div class="empty-state" id="empty-state">
                 <img class="empty-logo" src="img/logo.svg" alt="PDF Reader">
                 <h1>ลากไฟล์ PDF มาวางที่นี่</h1>
-                <p>หรือ <button type="button" class="link-button" data-action="open">เลือกไฟล์จากเครื่อง</button></p>
+                <p>หรือ <button type="button" class="link-button" data-action="open">Open File…</button></p>
                 <ul class="shortcut-list">
                     <li><kbd>Ctrl</kbd>+<kbd>O</kbd> เปิดไฟล์</li>
                     <li><kbd>Ctrl</kbd>+<kbd>F</kbd> ค้นหา</li>
@@ -114,7 +115,7 @@
         <span class="busy-indicator">กำลังทำงาน…</span>
         <span class="update-notice" id="update-notice" hidden>
             <span id="update-text"></span>
-            <button type="button" class="update-button" id="update-install" hidden>รีสตาร์ทเพื่ออัปเดต</button>
+            <button type="button" class="update-button" id="update-install" hidden>Restart to Update</button>
         </span>
         <span class="app-version" id="app-version"></span>
     </footer>
@@ -130,10 +131,10 @@
                 <textarea id="dlg-prompt-textarea" rows="5" hidden></textarea>
             </label>
             <div class="dialog-actions">
-                <button type="button" id="dlg-prompt-delete" class="danger" hidden>ลบ</button>
+                <button type="button" id="dlg-prompt-delete" class="danger" hidden>Delete</button>
                 <span class="spacer"></span>
-                <button type="button" class="secondary" id="dlg-prompt-cancel">ยกเลิก</button>
-                <button type="submit" class="primary">ตกลง</button>
+                <button type="button" class="secondary" id="dlg-prompt-cancel">Cancel</button>
+                <button type="submit" class="primary">OK</button>
             </div>
         </form>
     </dialog>
@@ -144,8 +145,8 @@
             <p id="dlg-confirm-message"></p>
             <div class="dialog-actions">
                 <span class="spacer"></span>
-                <button value="cancel" class="secondary">ยกเลิก</button>
-                <button value="ok" class="primary" id="dlg-confirm-ok">ตกลง</button>
+                <button value="cancel" class="secondary">Cancel</button>
+                <button value="ok" class="primary" id="dlg-confirm-ok">OK</button>
             </div>
         </form>
     </dialog>
@@ -153,18 +154,18 @@
     <dialog id="dlg-signature" class="dialog-wide">
         <form method="dialog">
             <h2>เซ็นเอกสาร</h2>
-            <p class="dialog-hint">วาดลายเซ็นในกรอบ แล้วกด "วางบนเอกสาร" จากนั้นคลิกตำแหน่งบนหน้า (ลากเพื่อย้าย ลากมุมเพื่อปรับขนาด)</p>
+            <p class="dialog-hint">วาดลายเซ็นในกรอบ แล้วกด "Place on Page" จากนั้นคลิกตำแหน่งบนหน้า (ลากเพื่อย้าย ลากมุมเพื่อปรับขนาด)</p>
             <canvas id="sig-pad" class="sig-pad" width="900" height="300"></canvas>
             <div class="sig-tools">
                 <label>สีหมึก
                     <select id="sig-color">
-                        <option value="#0b2a8f">น้ำเงิน</option>
-                        <option value="#111111">ดำ</option>
-                        <option value="#b00020">แดง</option>
+                        <option value="#0b2a8f">Blue</option>
+                        <option value="#111111">Black</option>
+                        <option value="#b00020">Red</option>
                     </select>
                 </label>
-                <button type="button" id="sig-clear" class="secondary">ล้าง</button>
-                <label class="file-button secondary">ใช้รูปภาพ…
+                <button type="button" id="sig-clear" class="secondary">Clear</button>
+                <label class="file-button secondary">Use Image…
                     <input type="file" id="sig-image" accept="image/png,image/jpeg">
                 </label>
             </div>
@@ -173,8 +174,8 @@
             <div class="sig-saved" id="sig-saved"></div>
             <div class="dialog-actions">
                 <span class="spacer"></span>
-                <button value="cancel" class="secondary">ยกเลิก</button>
-                <button type="button" id="sig-use" class="primary">วางบนเอกสาร</button>
+                <button value="cancel" class="secondary">Cancel</button>
+                <button type="button" id="sig-use" class="primary">Place on Page</button>
             </div>
         </form>
     </dialog>

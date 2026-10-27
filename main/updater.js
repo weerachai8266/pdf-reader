@@ -9,7 +9,7 @@
 //      without rebuilding
 //   2. config/update.json bundled in the app   — default for every install
 
-const { app, ipcMain } = require('electron');
+const { app, ipcMain, dialog } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 
@@ -35,16 +35,24 @@ function loadUpdateConfig() {
     return null;
 }
 
+// Returns { checkNow } for the Help > Check for Updates menu item.
 function initUpdater(getWindow) {
     const send = (status) => getWindow()?.webContents.send('update:status', status);
-    ipcMain.handle('update:check', () => check());
+    let autoUpdater = null;
     ipcMain.handle('update:install', () => {
         if (autoUpdater) autoUpdater.quitAndInstall(false, true);
     });
 
-    let autoUpdater = null;
     const cfg = app.isPackaged ? loadUpdateConfig() : null;
-    if (!cfg) return;
+    const notify = (message) => dialog.showMessageBox(getWindow(), { type: 'info', title: 'Check for Updates', message });
+
+    if (!cfg) {
+        return {
+            checkNow: () => notify(app.isPackaged
+                ? 'ยังไม่ได้ตั้งค่าเซิร์ฟเวอร์อัปเดต (config/update.json หรือ update.json ข้างไฟล์โปรแกรม)'
+                : 'การอัปเดตใช้ได้เฉพาะโปรแกรมที่ติดตั้งแล้ว'),
+        };
+    }
 
     ({ autoUpdater } = require('electron-updater'));
     autoUpdater.setFeedURL({ provider: 'generic', url: cfg.url.trim() });
@@ -57,18 +65,27 @@ function initUpdater(getWindow) {
     autoUpdater.on('error', (err) => console.error('update error:', err?.message || err));
 
     async function check() {
-        if (!autoUpdater) return;
         try {
-            await autoUpdater.checkForUpdates();
+            return await autoUpdater.checkForUpdates();
         } catch (err) {
             // Offline or server down: try again at the next interval.
             console.error('update check failed:', err?.message || err);
+            return { error: err };
         }
     }
 
     const hours = Math.max(1, Number(cfg.checkIntervalHours) || 4);
     setTimeout(check, STARTUP_DELAY_MS);
     setInterval(check, hours * 3_600_000);
+
+    return {
+        async checkNow() {
+            const result = await check();
+            if (result?.error) return notify(`ติดต่อเซิร์ฟเวอร์อัปเดตไม่ได้: ${result.error.message || result.error}`);
+            if (!result?.isUpdateAvailable) return notify(`ใช้เวอร์ชันล่าสุดอยู่แล้ว (${app.getVersion()})`);
+            return notify(`พบเวอร์ชัน ${result.updateInfo.version} กำลังดาวน์โหลด ดูสถานะได้ที่แถบล่าง`);
+        },
+    };
 }
 
 module.exports = { initUpdater };

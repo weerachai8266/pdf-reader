@@ -172,13 +172,13 @@ function renderSaved() {
         btn.type = 'button';
         btn.className = 'sig-saved-item';
         btn.dataset.index = i;
-        btn.title = 'ใช้ลายเซ็นนี้';
+        btn.title = 'Use this signature';
         const img = document.createElement('img');
         img.src = item.dataUrl;
         img.alt = 'ลายเซ็นที่บันทึกไว้';
         const rm = document.createElement('span');
         rm.className = 'sig-remove';
-        rm.title = 'ลบ';
+        rm.title = 'Remove';
         rm.textContent = '×';
         btn.append(img, rm);
         box.append(btn);

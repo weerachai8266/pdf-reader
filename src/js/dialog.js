@@ -45,7 +45,7 @@ export function promptText({ title, label, value = '', multiline = false, allowD
     });
 }
 
-export function confirmDialog({ title, message, okLabel = 'ตกลง' }) {
+export function confirmDialog({ title, message, okLabel = 'OK' }) {
     const dlg = $('dlg-confirm');
     $('dlg-confirm-title').textContent = title;
     $('dlg-confirm-message').textContent = message;
