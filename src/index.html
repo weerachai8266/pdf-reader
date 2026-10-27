@@ -101,7 +101,8 @@
             <div class="empty-state" id="empty-state">
                 <img class="empty-logo" src="img/logo.svg" alt="PDF Reader">
                 <h1>ลากไฟล์ PDF มาวางที่นี่</h1>
-                <p>หรือ <button type="button" class="link-button" data-action="open">Open File…</button></p>
+                <p>หรือ <button type="button" class="link-button" data-action="open">Open File…</button>
+                    · <button type="button" class="link-button" data-action="create-pdf">Create PDF from Word / Excel / Image…</button></p>
                 <ul class="shortcut-list">
                     <li><kbd>Ctrl</kbd>+<kbd>O</kbd> เปิดไฟล์</li>
                     <li><kbd>Ctrl</kbd>+<kbd>F</kbd> ค้นหา</li>
@@ -364,6 +365,35 @@
                 <span class="spacer"></span>
                 <button value="cancel" class="secondary" formnovalidate>Cancel</button>
                 <button value="ok" class="primary danger-fill">Apply Redactions</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="dlg-export-image">
+        <form method="dialog">
+            <h2>Export to Images</h2>
+            <p class="dialog-hint">แปลงแต่ละหน้าเป็นไฟล์รูปภาพ แล้วเลือกโฟลเดอร์ที่จะเก็บ</p>
+            <div class="field-row">
+                <label class="field"><span>รูปแบบ</span>
+                    <select id="img-export-format">
+                        <option value="png">PNG</option>
+                        <option value="jpeg">JPEG</option>
+                    </select>
+                </label>
+                <label class="field"><span>ความละเอียด</span>
+                    <select id="img-export-dpi">
+                        <option value="96">96 dpi (หน้าจอ)</option>
+                        <option value="150" selected>150 dpi</option>
+                        <option value="300">300 dpi (พิมพ์)</option>
+                    </select>
+                </label>
+                <label class="field"><span>หน้า</span><input id="img-export-range" type="text" autocomplete="off"></label>
+            </div>
+            <p class="dialog-error" data-error hidden></p>
+            <div class="dialog-actions">
+                <span class="spacer"></span>
+                <button value="cancel" class="secondary" formnovalidate>Cancel</button>
+                <button value="ok" class="primary">Export</button>
             </div>
         </form>
     </dialog>

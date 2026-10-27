@@ -8,8 +8,10 @@ export { pdfjsLib };
 
 // Loads a PDF from bytes. pdf.js transfers the buffer to its worker, so we
 // always hand it a copy and keep the caller's bytes intact for saving.
-export function loadPdf(bytes, askPassword) {
+// extra: more getDocument options (e.g. fontExtraProperties for export).
+export function loadPdf(bytes, askPassword, extra = {}) {
     const task = pdfjsLib.getDocument({
+        ...extra,
         data: bytes.slice(),
         cMapUrl: BASE + 'cmaps/',
         cMapPacked: true,

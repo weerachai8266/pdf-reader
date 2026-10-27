@@ -87,6 +87,15 @@ if (process.argv.includes('--ocr')) {
     if (!ok) failed++;
     console.log(`${ok ? 'PASS' : 'FAIL'}  qpdf optimize + encrypt in packaged build`, ok ? '' : out);
 }
+// --convert <file.docx>: LibreOffice bundled under resources/ converts it.
+const convertArg = process.argv.indexOf('--convert');
+if (convertArg > 0) {
+    const docx = path.resolve(process.argv[convertArg + 1]);
+    const out = await evaluate(`window.host.convertPrepare(${JSON.stringify(docx)}).then((r) => r.error || (r.kind + ':' + r.data.length))`);
+    const ok = /^pdf:\d+$/.test(out || '');
+    if (!ok) failed++;
+    console.log(`${ok ? 'PASS' : 'FAIL'}  Word -> PDF with bundled LibreOffice`, out);
+}
 console.log('version:', await evaluate(`document.getElementById('app-version').textContent`));
 console.log('font:', await evaluate(`getComputedStyle(document.body).fontFamily`));
 ws.close();

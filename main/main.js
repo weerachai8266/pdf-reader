@@ -7,6 +7,7 @@ const { pathToFileURL } = require('node:url');
 const { initUpdater } = require('./updater');
 const { buildMenu } = require('./menu');
 const { initPrint } = require('./print');
+const { initConvert } = require('./convert');
 
 const APP_ROOT = path.join(__dirname, '..');
 
@@ -111,9 +112,11 @@ ipcMain.handle('file:read', async (_e, filePath) => {
 ipcMain.handle('file:save', async (_e, { data, filePath, suggestedName }) => {
     let target = filePath;
     if (!target) {
+        // The suggested name's extension picks the file type (PDF, DOCX, TXT…).
+        const ext = path.extname(suggestedName || '').slice(1).toLowerCase() || 'pdf';
         const res = await dialog.showSaveDialog(mainWindow, {
             defaultPath: suggestedName || 'document.pdf',
-            filters: [{ name: 'PDF', extensions: ['pdf'] }],
+            filters: [{ name: ext.toUpperCase(), extensions: [ext] }],
         });
         if (res.canceled || !res.filePath) return null;
         target = res.filePath;
@@ -176,6 +179,7 @@ if (!gotLock) {
         registerAppProtocol();
         createWindow();
         initPrint();
+        initConvert(() => mainWindow);
         const updater = initUpdater(() => mainWindow);
         buildMenu(() => mainWindow, { checkForUpdates: () => updater.checkNow() });
     });

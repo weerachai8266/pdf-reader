@@ -23,9 +23,15 @@ function check(name, ok, detail = '') {
 
 let nextSavePath = savedPdf;
 dialog.showSaveDialog = async () => ({ canceled: false, filePath: nextSavePath });
-// Folder picker (Split / Extract as separate files).
+// Folder picker (Split / Extract as separate files), or the files picked
+// for Create PDF when a test set them.
 let nextFolder = outDir;
-dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [nextFolder] });
+let nextOpenPaths = null;
+dialog.showOpenDialog = async () => {
+    const filePaths = nextOpenPaths || [nextFolder];
+    nextOpenPaths = null;
+    return { canceled: false, filePaths };
+};
 
 // Printing is redirected to a PDF file so the test can inspect the job
 // without a printer or the Windows print dialog.
@@ -161,16 +167,22 @@ async function run() {
         fs.writeFileSync(path.join(outDir, 'reopened.png'), (await win.capturePage()).toPNG());
     }
 
-    // SMOKE_ONLY=doctools skips the slower earlier suites while iterating.
-    if (process.env.SMOKE_ONLY !== 'doctools') {
+    // SMOKE_ONLY=doctools|convert skips the slower earlier suites while iterating.
+    if (!process.env.SMOKE_ONLY) {
         await testForms(win, js);
         await testPrint(win, js);
         await testOcr(win, js);
     }
-    await require('./doctools.js')({
+    if (process.env.SMOKE_ONLY !== 'convert') await require('./doctools.js')({
         win, js, check, waitFor, sleep, outDir, inputPdf,
         setSavePath: (file) => { nextSavePath = file; },
         setFolder: (folder) => { nextFolder = folder; },
+    });
+    await require('./convert.js')({
+        win, js, check, waitFor, sleep, outDir, inputPdf,
+        setSavePath: (file) => { nextSavePath = file; },
+        setFolder: (folder) => { nextFolder = folder; },
+        setOpenPaths: (paths) => { nextOpenPaths = paths; },
     });
 
     console.log(`\nscreenshot: ${shot}\noutput dir: ${outDir}`);

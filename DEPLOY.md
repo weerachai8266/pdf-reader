@@ -4,9 +4,12 @@
 
 ```bash
 npm install
+powershell -ExecutionPolicy Bypass -File tools/fetch-libreoffice.ps1   # ครั้งแรกครั้งเดียวต่อเครื่องที่ build
 npm test        # ต้องขึ้น ALL PASSED
 npm run dist
 ```
+
+`fetch-libreoffice.ps1` ดาวน์โหลด LibreOffice (ตัวแปลงไฟล์ Word/Excel/PowerPoint) แล้วตรวจ SHA-256 จากนั้นแตกไฟล์ไว้ที่ `vendor/libreoffice` โดยไม่ติดตั้งลงเครื่อง และตัดส่วนที่ไม่ใช้ออก (พจนานุกรม ภาษาเมนู ไอคอน) เหลือประมาณ 520 MB ไฟล์ติดตั้งจะรวมส่วนนี้ไว้ด้วย ถ้าข้ามขั้นตอนนี้ ไฟล์ติดตั้งจะยังสร้างได้ แต่เมนู Create PDF จากไฟล์ Office จะใช้ไม่ได้ ถ้าต้องการเปลี่ยนเวอร์ชัน LibreOffice ให้แก้ `$Version` และ `$Sha256` ในสคริปต์
 
 ผลลัพธ์อยู่ในโฟลเดอร์ `dist/`
 

@@ -28,6 +28,8 @@ function fixGlyphs(str) {
     }
     return out
         .replace(DROP, '')
+        // NIKHAHIT, tone mark, SARA AA (how some fonts draw น้ำ).
+        .replace(/\u0e4d([\u0e48-\u0e4b])\u0e32/g, '$1\u0e33')
         // Tone mark typed before NIKHAHIT + SARA AA, or plain NIKHAHIT + SARA AA.
         .replace(/([\u0e48-\u0e4b]?)\u0e4d\u0e32/g, '$1\u0e33');
 }

@@ -16,5 +16,9 @@ contextBridge.exposeInMainWorld('host', {
     onUpdateStatus: (cb) => ipcRenderer.on('update:status', (_e, status) => cb(status)),
     installUpdate: () => ipcRenderer.invoke('update:install'),
     print: (job) => ipcRenderer.invoke('print:document', job),
+    convertAvailable: () => ipcRenderer.invoke('convert:available'),
+    convertPick: (opts) => ipcRenderer.invoke('convert:pick', opts),
+    convertPrepare: (filePath) => ipcRenderer.invoke('convert:prepare', filePath),
+    convertExport: (job) => ipcRenderer.invoke('convert:export', job),
     onMenuCommand: (cb) => ipcRenderer.on('menu:command', (_e, command) => cb(command)),
 });

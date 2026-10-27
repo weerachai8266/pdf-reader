@@ -9,7 +9,7 @@ import { initAnnotate, setTool, setHighlightColor } from './annotate.js';
 import { initSearch, focusSearch, resetSearch } from './search.js';
 import { initThumbs, resetThumbs } from './thumbs.js';
 import { initSignature, openSignatureDialog } from './signature.js';
-import { askPassword, confirmDialog, toast } from './dialog.js';
+import { askPassword, confirmDialog, progressDialog, toast } from './dialog.js';
 import { buildPdf } from './save.js';
 import { cleanCopiedText } from './thai.js';
 import { initUpdateNotice } from './update.js';
@@ -21,6 +21,7 @@ import { headerFooter, watermark } from './stamp.js';
 import { reduceFileSize } from './compress.js';
 import { initProtect, protectDocument, removeSecurity } from './protect.js';
 import { applyRedactions, pendingRedactions } from './redact.js';
+import { CONVERTIBLE, filesToPdfs, exportWord, exportImages, exportText } from './convert.js';
 
 const $ = (id) => document.getElementById(id);
 const APP_NAME = 'PDF Reader';
@@ -125,17 +126,47 @@ async function announceDocument(pdf) {
     }
 }
 
+// Picked or dropped files (PDF, Office, images) -> PDF bytes, or null.
+async function convertPaths(paths, title) {
+    const progress = progressDialog(title);
+    try {
+        return await filesToPdfs(paths, progress);
+    } finally {
+        progress.close();
+    }
+}
+
+// File > Create PDF: the files become one new, unsaved document.
+async function createPdf(paths = null) {
+    paths ??= await window.host.convertPick({ multiple: true });
+    if (!paths.length || !(await confirmDiscard())) return;
+    const pdfs = await convertPaths(paths, 'Create PDF');
+    if (!pdfs?.length) return;
+    const [first, ...rest] = pdfs;
+    await openFile({ path: null, name: first.name, data: first.data }, { force: true });
+    if (!hasDocument() || state.fileName !== first.name) return;
+    if (rest.length) await appendPdfs(rest);
+    setDirty(true);
+    toast(`สร้าง PDF แล้ว ${state.pages.length} หน้า กด Save เพื่อบันทึก`);
+}
+
+async function appendPdfs(pdfs) {
+    for (const { name, data } of pdfs) {
+        const pdf = await loadPdf(data, askPassword);
+        addSource({ name, bytes: data, pdf });
+    }
+    pagesChanged();
+}
+
 async function mergeFiles() {
-    if (!hasDocument()) return openDialog();
-    const files = await window.host.openDialog({ multiple: true });
-    if (!files.length) return;
+    if (!hasDocument()) return createPdf();
+    const paths = await window.host.convertPick({ multiple: true });
+    if (!paths.length) return;
     setBusy(true);
     try {
-        for (const file of files) {
-            const pdf = await loadPdf(file.data, askPassword);
-            addSource({ name: file.name, bytes: file.data, pdf });
-        }
-        pagesChanged();
+        const pdfs = await convertPaths(paths, 'Combine Files');
+        if (!pdfs?.length) return;
+        await appendPdfs(pdfs);
         toast(`รวมไฟล์แล้ว ทั้งหมด ${state.pages.length} หน้า`);
     } catch (err) {
         reportLoadError(err);
@@ -243,6 +274,10 @@ function setBusy(busy) {
 const actions = {
     open: openDialog,
     merge: mergeFiles,
+    'create-pdf': () => createPdf(),
+    'export-docx': exportWord,
+    'export-images': exportImages,
+    'export-text': exportText,
     save: () => save(false),
     'save-as': () => save(true),
     print: printDocument,
@@ -283,7 +318,7 @@ const actions = {
         focusSearch();
     },
 };
-const ALWAYS_AVAILABLE = new Set(['open', 'toggle-sidebar']);
+const ALWAYS_AVAILABLE = new Set(['open', 'toggle-sidebar', 'create-pdf']);
 
 function runCommand(name) {
     if (!actions[name]) return;
@@ -410,13 +445,18 @@ function bindDragDrop() {
         if (!hasFiles(e)) return;
         e.preventDefault();
         document.body.classList.remove('is-dropping');
-        const file = [...e.dataTransfer.files].find((f) => f.name.toLowerCase().endsWith('.pdf'));
-        if (!file) {
-            toast('รองรับเฉพาะไฟล์ .pdf', 'error');
+        const files = [...e.dataTransfer.files].filter((f) => CONVERTIBLE.test(f.name));
+        if (!files.length) {
+            toast('รองรับไฟล์ PDF, Word, Excel, PowerPoint และรูปภาพ', 'error');
             return;
         }
-        const loaded = await window.host.readFile(window.host.pathForFile(file));
-        if (loaded) openFile(loaded);
+        // A single PDF opens as it is; anything else is converted first.
+        if (files.length === 1 && /\.pdf$/i.test(files[0].name)) {
+            const loaded = await window.host.readFile(window.host.pathForFile(files[0]));
+            if (loaded) openFile(loaded);
+            return;
+        }
+        createPdf(files.map((f) => window.host.pathForFile(f)));
     });
 }
 

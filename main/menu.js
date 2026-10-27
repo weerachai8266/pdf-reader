@@ -20,10 +20,20 @@ function buildMenu(getWindow, { checkForUpdates }) {
             label: '&File',
             submenu: [
                 item('&Open…', 'open', 'Ctrl+O'),
+                item('&Create PDF from File…', 'create-pdf'),
                 item('&Combine Files…', 'merge'),
                 { type: 'separator' },
                 item('&Save', 'save', 'Ctrl+S'),
                 item('Save &As…', 'save-as', 'Ctrl+Shift+S'),
+                { type: 'separator' },
+                {
+                    label: 'E&xport To',
+                    submenu: [
+                        item('&Word Document (.docx)…', 'export-docx'),
+                        item('&Image (PNG/JPEG)…', 'export-images'),
+                        item('Plain &Text (.txt)…', 'export-text'),
+                    ],
+                },
                 { type: 'separator' },
                 item('&Print…', 'print', 'Ctrl+P'),
                 { type: 'separator' },
