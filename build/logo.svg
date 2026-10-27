@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3d7ef0"/>
+      <stop offset="1" stop-color="#1b4fc4"/>
+    </linearGradient>
+    <linearGradient id="fold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d6e3fb"/>
+      <stop offset="1" stop-color="#9fbaf0"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="url(#bg)"/>
+  <!-- page -->
+  <path d="M80 40h70l46 46v122a10 10 0 0 1-10 10H80a10 10 0 0 1-10-10V50a10 10 0 0 1 10-10z" fill="#fff"/>
+  <path d="M150 40v36a10 10 0 0 0 10 10h36z" fill="url(#fold)"/>
+  <!-- highlighted line -->
+  <rect x="86" y="98" width="82" height="26" rx="6" fill="#ffd43b"/>
+  <rect x="94" y="106" width="66" height="10" rx="5" fill="#1b4fc4"/>
+  <!-- text lines -->
+  <rect x="94" y="138" width="84" height="10" rx="5" fill="#a9b6cc"/>
+  <rect x="94" y="160" width="58" height="10" rx="5" fill="#a9b6cc"/>
+  <!-- signature stroke -->
+  <path d="M94 196c10-14 18-14 20-4s8 10 16-2 14-8 16 0 10 4 20-6" fill="none" stroke="#1b4fc4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

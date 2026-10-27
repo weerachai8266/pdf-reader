@@ -1,5 +1,7 @@
 :root {
-    --font-sans: 'Kanit', 'Segoe UI', 'Sarabun', system-ui, sans-serif;
+    /* Windows system fonts: Segoe UI for Latin, Leelawadee UI for Thai
+       (picked per glyph). No web font to download or bundle. */
+    --font-sans: 'Segoe UI', 'Leelawadee UI', 'Leelawadee', Tahoma, system-ui, sans-serif;
     --fs-sm: 0.9375rem; /* 15px — smallest text in the app */
     --fs-md: 1rem;
     --fs-lg: 1.25rem;
@@ -241,6 +243,32 @@ kbd {
 
 .is-busy {
     cursor: progress;
+}
+
+.update-notice {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    color: var(--accent);
+}
+
+.update-notice[hidden],
+.update-button[hidden] {
+    display: none;
+}
+
+.update-button {
+    padding: 0 10px;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    background: var(--accent);
+    color: #fff;
+    font-size: var(--fs-sm);
+}
+
+.update-notice:not([hidden]) + .app-version {
+    margin-left: 0;
 }
 
 .app-version {

@@ -12,6 +12,7 @@ import { initSignature, openSignatureDialog } from './signature.js';
 import { askPassword, confirmDialog, toast } from './dialog.js';
 import { buildPdf } from './save.js';
 import { cleanCopiedText } from './thai.js';
+import { initUpdateNotice } from './update.js';
 
 const $ = (id) => document.getElementById(id);
 const APP_NAME = 'PDF Reader';
@@ -27,6 +28,7 @@ async function init() {
     bindKeyboard(scroller);
     bindDragDrop();
     bindCopy();
+    initUpdateNotice();
 
     on('dirty-changed', updateTitle);
     on('current-page', (idx) => {

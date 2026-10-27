@@ -12,7 +12,13 @@ npm start            # เปิดโปรแกรม
 npm start -- ไฟล์.pdf # เปิดพร้อมไฟล์
 npm run dev          # เปิดพร้อม DevTools
 npm test             # smoke test แบบ end-to-end
+npm run dist         # สร้างไฟล์ติดตั้ง Windows → dist/
+npm run icons        # สร้างไอคอนใหม่จาก build/logo.svg
 ```
+
+การติดตั้งหลายเครื่องและระบบอัปเดต ดูได้ที่ [DEPLOY.md](DEPLOY.md)
+
+ฟอนต์ที่ใช้คือฟอนต์ของ Windows เอง (Segoe UI สำหรับอังกฤษ และ Leelawadee UI สำหรับไทย) จึงไม่ต้องโหลดฟอนต์เพิ่ม
 
 ## ฟีเจอร์ (v0.1.0)
 
@@ -40,9 +46,12 @@ npm test             # smoke test แบบ end-to-end
 ## โครงสร้าง
 
 ```
-main/      Electron main process + preload (เปิด/บันทึกไฟล์, protocol app://)
-src/       หน้า renderer: index.html, css/, js/
-test/      smoke test
+main/      Electron main process, preload, updater
+src/       หน้า renderer: index.html, css/, js/, img/
+config/    update.json (URL เซิร์ฟเวอร์อัปเดต)
+build/     โลโก้ (logo.svg) และไอคอน
+tools/     สคริปต์สร้างไอคอน
+test/      smoke test (ซอร์ส) และ packaged.mjs (ทดสอบตัวที่ build แล้ว)
 ```
 
 เวอร์ชันอ่านจาก `package.json` (แหล่งเดียว) และแสดงที่มุมขวาล่างของแถบสถานะ

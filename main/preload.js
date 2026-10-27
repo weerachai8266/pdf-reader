@@ -12,4 +12,6 @@ contextBridge.exposeInMainWorld('host', {
     setDirty: (dirty) => ipcRenderer.send('doc:dirty', dirty),
     setTitle: (title) => ipcRenderer.send('window:set-title', title),
     onFileOpened: (cb) => ipcRenderer.on('file:opened', (_e, file) => cb(file)),
+    onUpdateStatus: (cb) => ipcRenderer.on('update:status', (_e, status) => cb(status)),
+    installUpdate: () => ipcRenderer.invoke('update:install'),
 });

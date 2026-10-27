@@ -4,6 +4,7 @@ const { app, BrowserWindow, dialog, ipcMain, protocol, net, Menu } = require('el
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
+const { initUpdater } = require('./updater');
 
 const APP_ROOT = path.join(__dirname, '..');
 
@@ -40,6 +41,7 @@ function createWindow() {
         minWidth: 720,
         minHeight: 480,
         backgroundColor: '#3b3f46',
+        icon: path.join(APP_ROOT, 'build', 'icon.ico'),
         show: false,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
@@ -134,6 +136,7 @@ if (!gotLock) {
     app.whenReady().then(() => {
         registerAppProtocol();
         createWindow();
+        initUpdater(() => mainWindow);
     });
 
     app.on('window-all-closed', () => app.quit());

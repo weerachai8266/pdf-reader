@@ -1,23 +1,82 @@
 {
   "name": "pdf-reader",
   "productName": "PDF Reader",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "โปรแกรมอ่าน PDF ที่เบา เร็ว รองรับภาษาไทย ไฮไลต์ คอมเมนต์ เซ็น และจัดการหน้าได้ฟรี",
+  "author": "PDF Reader",
   "main": "main/main.js",
   "private": true,
   "scripts": {
     "start": "electron .",
     "dev": "electron . --devtools",
-    "test": "electron test/smoke.js"
+    "test": "electron test/smoke.js",
+    "icons": "electron tools/make-icons.js",
+    "dist": "electron-builder --win nsis --x64 --publish never"
   },
   "license": "UNLICENSED",
   "type": "commonjs",
   "dependencies": {
-    "@fontsource/kanit": "^5.3.0",
+    "electron-updater": "^6.8.11",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.4.299"
   },
   "devDependencies": {
-    "electron": "^45.0.0"
+    "electron": "^45.0.0",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "com.pdfreader.desktop",
+    "productName": "PDF Reader",
+    "copyright": "PDF Reader",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main/**",
+      "src/**",
+      "config/**",
+      "build/icon.ico",
+      "package.json",
+      "!**/*.map",
+      "!node_modules/pdfjs-dist/legacy/**",
+      "!node_modules/pdfjs-dist/types/**",
+      "!node_modules/pdfjs-dist/image_decoders/**",
+      "!node_modules/pdfjs-dist/web/**",
+      "!node_modules/@napi-rs/**"
+    ],
+    "fileAssociations": [
+      {
+        "ext": "pdf",
+        "name": "PDF Document",
+        "description": "เอกสาร PDF",
+        "role": "Viewer",
+        "icon": "build/icon.ico"
+      }
+    ],
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://updates.invalid/pdf-reader/"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico",
+      "artifactName": "PDF-Reader-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "PDF Reader",
+      "uninstallDisplayName": "PDF Reader",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "deleteAppDataOnUninstall": false
+    }
   }
 }

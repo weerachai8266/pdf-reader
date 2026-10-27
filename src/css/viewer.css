@@ -229,9 +229,10 @@
     color: #9cc0ff;
 }
 
-.empty-icon {
-    font-size: 3.5rem;
-    line-height: 1.2;
+.empty-logo {
+    width: 112px;
+    height: 112px;
+    margin-bottom: 12px;
 }
 
 .shortcut-list {

@@ -5,10 +5,6 @@
     <meta http-equiv="Content-Security-Policy"
           content="default-src 'self'; script-src 'self'; worker-src 'self' blob:; style-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
     <title>PDF Reader</title>
-    <link rel="stylesheet" href="../node_modules/@fontsource/kanit/300.css">
-    <link rel="stylesheet" href="../node_modules/@fontsource/kanit/400.css">
-    <link rel="stylesheet" href="../node_modules/@fontsource/kanit/500.css">
-    <link rel="stylesheet" href="../node_modules/@fontsource/kanit/600.css">
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/viewer.css">
     <link rel="stylesheet" href="css/sidebar.css">
@@ -98,7 +94,7 @@
         <main class="viewer" id="viewer">
             <div class="pages" id="pages"></div>
             <div class="empty-state" id="empty-state">
-                <div class="empty-icon">📄</div>
+                <img class="empty-logo" src="img/logo.svg" alt="PDF Reader">
                 <h1>ลากไฟล์ PDF มาวางที่นี่</h1>
                 <p>หรือ <button type="button" class="link-button" data-action="open">เลือกไฟล์จากเครื่อง</button></p>
                 <ul class="shortcut-list">
@@ -115,6 +111,10 @@
     <footer class="statusbar">
         <span id="file-name">ยังไม่ได้เปิดไฟล์</span>
         <span class="busy-indicator">กำลังทำงาน…</span>
+        <span class="update-notice" id="update-notice" hidden>
+            <span id="update-text"></span>
+            <button type="button" class="update-button" id="update-install" hidden>รีสตาร์ทเพื่ออัปเดต</button>
+        </span>
         <span class="app-version" id="app-version"></span>
     </footer>
 
