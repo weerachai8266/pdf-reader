@@ -1,4 +1,5 @@
-// Annotation tools: highlight, sticky note, signature/image, eraser.
+// Annotation tools: highlight, sticky note, signature/image, redaction
+// marks, eraser.
 //
 // Each annotation's geometry is a "quad" of three PDF-space points taken
 // from the on-screen box it was created in: bottom-left, bottom-right and
@@ -25,6 +26,7 @@ export function initAnnotate(scroller) {
     });
     scroller.addEventListener('mouseup', onMouseUp);
     scroller.addEventListener('click', onClick);
+    scroller.addEventListener('pointerdown', startRedactMark);
     document.addEventListener('keydown', onKeyDown);
 }
 
@@ -112,6 +114,13 @@ function drawAnnots(view) {
             el.style.top = `${y}px`;
             el.textContent = '💬';
             layer.append(el);
+        } else if (a.type === 'redact') {
+            const el = document.createElement('div');
+            el.className = 'annot-redact';
+            el.dataset.id = a.id;
+            el.title = 'Redaction mark (Apply Redactions to remove)';
+            placeBox(el, quadToView(view.viewport, a.quad));
+            layer.append(el);
         } else if (a.type === 'image') {
             const el = document.createElement('div');
             el.className = 'annot-image';
@@ -190,6 +199,42 @@ function mergeLineRects(rects) {
         }
     }
     return out;
+}
+
+// ---- redaction marks -----------------------------------------------------
+
+// Drag a rectangle on the page; it becomes a redaction mark that
+// redact.js turns into real removal.
+function startRedactMark(e) {
+    if (tool !== 'redact' || e.button !== 0) return;
+    const view = viewFromEvent(e);
+    if (!view || !view.viewport) return;
+    e.preventDefault();
+    const start = pointInPage(view, e.clientX, e.clientY);
+    const box = document.createElement('div');
+    box.className = 'annot-redact is-drawing';
+    view.annotLayer.append(box);
+    const target = e.target;
+    target.setPointerCapture(e.pointerId);
+    let rect = null;
+
+    const move = (ev) => {
+        const p = pointInPage(view, ev.clientX, ev.clientY);
+        const clamp = (v, max) => Math.min(Math.max(v, 0), max);
+        const x2 = clamp(p.x, p.rect.width);
+        const y2 = clamp(p.y, p.rect.height);
+        rect = { left: Math.min(start.x, x2), top: Math.min(start.y, y2), right: Math.max(start.x, x2), bottom: Math.max(start.y, y2) };
+        placeBox(box, { x: rect.left, y: rect.bottom, w: rect.right - rect.left, h: rect.bottom - rect.top, angle: 0 });
+    };
+    const up = () => {
+        target.removeEventListener('pointermove', move);
+        target.removeEventListener('pointerup', up);
+        box.remove();
+        if (!rect || rect.right - rect.left < 3 || rect.bottom - rect.top < 3) return;
+        addAnnot(view.entry.key, { type: 'redact', quad: quadFromViewRect(view.viewport, rect.left, rect.top, rect.right, rect.bottom) });
+    };
+    target.addEventListener('pointermove', move);
+    target.addEventListener('pointerup', up);
 }
 
 // ---- events -----------------------------------------------------------

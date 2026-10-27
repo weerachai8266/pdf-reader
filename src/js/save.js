@@ -6,6 +6,9 @@
 
 import { state } from './docstate.js';
 import { HIGHLIGHT_COLORS, HIGHLIGHT_OPACITY, NOTE_ICON_PX } from './config.js';
+import { optimize } from './qpdf.js';
+
+export const ENCRYPTED_HINT = 'ไฟล์นี้มีรหัสผ่าน ให้ใช้ Document → Remove Security ก่อน';
 
 const NOTE_COLOR = [1, 0.82, 0.2];
 // Characters outside Latin-1 can't be drawn with the standard PDF fonts
@@ -66,7 +69,7 @@ export async function buildPdf() {
                     warnings: ['ไฟล์มีรหัสผ่าน: บันทึกค่าในฟอร์มแล้ว แต่ข้อความภาษาไทยในช่องอาจแสดงไม่ถูกต้องในโปรแกรมอื่น'],
                 };
             }
-            throw new Error(`ไฟล์ "${src.name}" มีรหัสผ่าน บันทึกได้เฉพาะการกรอกฟอร์ม ยังจัดการหน้า/ไฮไลต์/เซ็นไม่ได้`);
+            throw new Error(`"${src.name}": ${ENCRYPTED_HINT} (ตอนนี้บันทึกได้เฉพาะการกรอกฟอร์ม)`);
         }
     }
 
@@ -103,8 +106,40 @@ export async function buildPdf() {
     const warnings = await fixNonLatinAppearances(lib, base);
     base.setModificationDate(new Date());
     // Appearances are handled above; pdf-lib's own pass would use Helvetica.
-    const data = await base.save({ useObjectStreams: true, updateFieldAppearances: false });
+    const saved = await base.save({ useObjectStreams: true, updateFieldAppearances: false });
+    // pdf-lib keeps every object it parsed, including those of deleted pages;
+    // qpdf writes only what is still referenced.
+    let data = saved;
+    try {
+        data = await optimize(saved);
+    } catch (err) {
+        console.warn('optimize after save failed, keeping pdf-lib output', err);
+    }
     return { data, warnings };
+}
+
+// The current document (merged pages, annotations, form values) as an
+// unencrypted pdf-lib document, for tools that produce new files.
+export async function buildEditable() {
+    const { data, warnings } = await buildPdf();
+    const lib = await loadPdfLib();
+    try {
+        return { lib, doc: await lib.PDFDocument.load(data, { updateMetadata: false }), warnings };
+    } catch (err) {
+        if (err instanceof lib.EncryptedPDFError) throw new Error(ENCRYPTED_HINT);
+        throw err;
+    }
+}
+
+// A source as a pdf-lib document, for tools that edit it in place.
+export async function loadSourceDoc(src) {
+    const lib = await loadPdfLib();
+    try {
+        return { lib, doc: await lib.PDFDocument.load(await sourceBytes(src), { updateMetadata: false }) };
+    } catch (err) {
+        if (err instanceof lib.EncryptedPDFError) throw new Error(ENCRYPTED_HINT);
+        throw err;
+    }
 }
 
 // ---- Thai form field appearances ---------------------------------------

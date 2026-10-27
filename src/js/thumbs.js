@@ -18,6 +18,14 @@ export function initThumbs() {
     observer = new IntersectionObserver(onIntersect, { root: list.parentElement, rootMargin: '200px 0px' });
     on('layout-changed', rebuildThumbs);
     on('current-page', markCurrent);
+    // Page content changed (OCR, stamps, redaction): drop stale previews.
+    on('source-replaced', (srcId) => {
+        const keys = new Set(state.pages.filter((p) => p.srcId === srcId).map((p) => p.key));
+        for (const cacheKey of [...rendered.keys()]) {
+            if (keys.has(cacheKey.slice(0, cacheKey.lastIndexOf(':')))) rendered.delete(cacheKey);
+        }
+        rebuildThumbs();
+    });
 
     list.addEventListener('click', (e) => {
         const item = e.target.closest('.thumb');

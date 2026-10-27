@@ -30,25 +30,8 @@ export async function recognizeText() {
         if (progress.cancelled) return toast('ยกเลิก OCR แล้ว');
         if (!entries.length) return toast('ทุกหน้าที่เลือกมีข้อความอยู่แล้ว ไม่ต้องทำ OCR');
 
-        progress.update('กำลังโหลดตัวอ่านภาษาไทย/อังกฤษ…', null);
-        const words = await recognize(entries, {
-            onProgress: (done, total) => progress.update(`กำลังอ่านข้อความ หน้า ${done} จาก ${total}`, total ? done / total : null),
-            isCancelled: () => progress.cancelled,
-        });
-        if (progress.cancelled) return toast('ยกเลิก OCR แล้ว เอกสารไม่ถูกเปลี่ยน');
-
-        progress.update('กำลังฝังข้อความลงในเอกสาร…', null);
-        const bySource = new Map(); // srcId -> Map(page index -> words)
-        for (const entry of entries) {
-            if (!bySource.has(entry.srcId)) bySource.set(entry.srcId, new Map());
-            bySource.get(entry.srcId).set(entry.index, words.get(entry.key) || []);
-        }
-        for (const [srcId, wordsByIndex] of bySource) {
-            const bytes = await addTextLayer(state.sources.get(srcId), wordsByIndex);
-            const pdf = await loadPdf(bytes, async () => null);
-            replaceSource(srcId, { bytes, pdf });
-        }
-        const found = [...words.values()].reduce((n, list) => n + list.length, 0);
+        const found = await ocrEntries(entries, progress);
+        if (found === null) return toast('ยกเลิก OCR แล้ว เอกสารไม่ถูกเปลี่ยน');
         toast(found ? `OCR เสร็จแล้ว ${entries.length} หน้า (${found} คำ) ค้นหาและคัดลอกข้อความได้แล้ว` : 'OCR เสร็จแล้ว แต่ไม่พบข้อความในหน้าที่เลือก');
     } catch (err) {
         console.error(err);
@@ -56,4 +39,28 @@ export async function recognizeText() {
     } finally {
         progress.close();
     }
+}
+
+// OCR the given page entries and embed the text into their sources.
+// Returns the number of words found, or null if cancelled.
+export async function ocrEntries(entries, progress) {
+    progress.update('กำลังโหลดตัวอ่านภาษาไทย/อังกฤษ…', null);
+    const words = await recognize(entries, {
+        onProgress: (done, total) => progress.update(`กำลังอ่านข้อความ หน้า ${done} จาก ${total}`, total ? done / total : null),
+        isCancelled: () => progress.cancelled,
+    });
+    if (progress.cancelled) return null;
+
+    progress.update('กำลังฝังข้อความลงในเอกสาร…', null);
+    const bySource = new Map(); // srcId -> Map(page index -> words)
+    for (const entry of entries) {
+        if (!bySource.has(entry.srcId)) bySource.set(entry.srcId, new Map());
+        bySource.get(entry.srcId).set(entry.index, words.get(entry.key) || []);
+    }
+    for (const [srcId, wordsByIndex] of bySource) {
+        const bytes = await addTextLayer(state.sources.get(srcId), wordsByIndex);
+        const pdf = await loadPdf(bytes, async () => null);
+        replaceSource(srcId, { bytes, pdf });
+    }
+    return [...words.values()].reduce((n, list) => n + list.length, 0);
 }

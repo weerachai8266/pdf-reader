@@ -60,7 +60,9 @@
             </span>
             <button type="button" data-tool="note" data-needs-doc aria-pressed="false" title="Add note (N) — click on the page">💬 Note</button>
             <button type="button" data-action="signature" data-needs-doc title="Fill &amp; Sign">✍ Sign</button>
-            <button type="button" data-tool="eraser" data-needs-doc aria-pressed="false" title="Eraser — click a highlight, note or signature">🧽 Eraser</button>
+            <button type="button" data-tool="redact" data-needs-doc aria-pressed="false" title="Mark for Redaction — drag over content to remove">⬛ Redact</button>
+            <button type="button" data-action="apply-redactions" class="apply-redactions" id="apply-redactions" hidden title="Permanently remove marked content">Apply Redactions</button>
+            <button type="button" data-tool="eraser" data-needs-doc aria-pressed="false" title="Eraser — click a highlight, note, signature or redaction mark">🧽 Eraser</button>
             <button type="button" data-action="ocr" data-needs-doc title="Recognize Text (OCR) — make scanned pages searchable">🔤 OCR</button>
         </div>
 
@@ -166,6 +168,202 @@
                 <span class="spacer"></span>
                 <button value="cancel" class="secondary">Cancel</button>
                 <button value="ok" class="primary">Recognize Text</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="dlg-extract">
+        <form method="dialog">
+            <h2>Extract Pages</h2>
+            <p class="dialog-hint">ดึงหน้าที่เลือกออกเป็นไฟล์ใหม่ (รวมไฮไลต์ ลายเซ็น และค่าในฟอร์ม) เอกสารนี้มีทั้งหมด <span id="extract-total">0</span> หน้า</p>
+            <label class="field">
+                <span>หน้า (เช่น 1-3, 5, 8-)</span>
+                <input id="extract-range" type="text" autocomplete="off" value="1">
+            </label>
+            <label class="option-row"><input type="checkbox" id="extract-separate"> แยกแต่ละหน้าเป็นไฟล์ของตัวเอง</label>
+            <label class="option-row"><input type="checkbox" id="extract-delete"> ลบหน้าเหล่านี้ออกจากเอกสารหลังดึงออก</label>
+            <p class="dialog-error" data-error hidden></p>
+            <div class="dialog-actions">
+                <span class="spacer"></span>
+                <button value="cancel" class="secondary" formnovalidate>Cancel</button>
+                <button value="ok" class="primary">Extract</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="dlg-split">
+        <form method="dialog">
+            <h2>Split Document</h2>
+            <p class="dialog-hint">แยกเอกสาร <span id="split-total">0</span> หน้า เป็นหลายไฟล์ แล้วเลือกโฟลเดอร์ที่จะเก็บ</p>
+            <fieldset class="option-group">
+                <legend>วิธีแยก</legend>
+                <label><input type="radio" name="split-mode" value="every" checked> ทุก ๆ <input id="split-every" class="inline-number" type="number" min="1" value="1"> หน้า ต่อไฟล์</label>
+                <label><input type="radio" name="split-mode" value="ranges"> ตามช่วงหน้า (คั่นแต่ละไฟล์ด้วย ;)</label>
+                <label class="field"><input id="split-ranges" type="text" autocomplete="off" placeholder="1-3; 4-10; 11-"></label>
+            </fieldset>
+            <p class="dialog-error" data-error hidden></p>
+            <div class="dialog-actions">
+                <span class="spacer"></span>
+                <button value="cancel" class="secondary" formnovalidate>Cancel</button>
+                <button value="ok" class="primary">Split</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="dlg-header" class="dialog-wide">
+        <form method="dialog">
+            <h2 id="dlg-header-title">Header &amp; Footer</h2>
+            <p class="dialog-hint">ใช้แทนค่าได้: <code>{page}</code> เลขหน้า · <code>{total}</code> จำนวนหน้า · <code>{date}</code> วันที่ · <code>{file}</code> ชื่อไฟล์ — ปล่อยว่างช่องที่ไม่ใช้</p>
+            <h3>Header</h3>
+            <div class="field-grid">
+                <label class="field"><span>ซ้าย</span><input id="hf-header-left" type="text" autocomplete="off"></label>
+                <label class="field"><span>กลาง</span><input id="hf-header-center" type="text" autocomplete="off"></label>
+                <label class="field"><span>ขวา</span><input id="hf-header-right" type="text" autocomplete="off"></label>
+            </div>
+            <h3>Footer</h3>
+            <div class="field-grid">
+                <label class="field"><span>ซ้าย</span><input id="hf-footer-left" type="text" autocomplete="off"></label>
+                <label class="field"><span>กลาง</span><input id="hf-footer-center" type="text" autocomplete="off"></label>
+                <label class="field"><span>ขวา</span><input id="hf-footer-right" type="text" autocomplete="off"></label>
+            </div>
+            <div class="field-row">
+                <label class="field"><span>ขนาดตัวอักษร (pt)</span><input id="hf-size" type="number" min="6" max="72" value="10"></label>
+                <label class="field"><span>ระยะจากขอบ (มม.)</span><input id="hf-margin" type="number" min="0" max="100" value="12"></label>
+                <label class="field"><span>เลขหน้าเริ่มที่</span><input id="hf-start" type="number" value="1"></label>
+                <label class="field"><span>สี</span>
+                    <select id="hf-color">
+                        <option value="black">Black</option>
+                        <option value="gray">Gray</option>
+                        <option value="blue">Blue</option>
+                        <option value="red">Red</option>
+                    </select>
+                </label>
+            </div>
+            <p class="dialog-error" data-error hidden></p>
+            <div class="dialog-actions">
+                <span class="spacer"></span>
+                <button value="cancel" class="secondary" formnovalidate>Cancel</button>
+                <button value="ok" class="primary">Apply</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="dlg-watermark">
+        <form method="dialog">
+            <h2>Add Watermark</h2>
+            <p class="dialog-hint">ใส่ข้อความลายน้ำกลางทุกหน้า</p>
+            <label class="field"><span>ข้อความ</span><input id="wm-text" type="text" autocomplete="off" value="ลับ"></label>
+            <div class="field-row">
+                <label class="field"><span>ขนาด</span>
+                    <select id="wm-size">
+                        <option value="auto">Auto (Fit Page)</option>
+                        <option value="36">36 pt</option>
+                        <option value="48">48 pt</option>
+                        <option value="72">72 pt</option>
+                        <option value="96">96 pt</option>
+                        <option value="144">144 pt</option>
+                    </select>
+                </label>
+                <label class="field"><span>แนว</span>
+                    <select id="wm-angle">
+                        <option value="45">Diagonal (45°)</option>
+                        <option value="0">Horizontal</option>
+                        <option value="-45">Diagonal (−45°)</option>
+                    </select>
+                </label>
+                <label class="field"><span>สี</span>
+                    <select id="wm-color">
+                        <option value="gray">Gray</option>
+                        <option value="red">Red</option>
+                        <option value="blue">Blue</option>
+                        <option value="black">Black</option>
+                    </select>
+                </label>
+                <label class="field"><span>ความทึบ (%)</span><input id="wm-opacity" type="number" min="5" max="100" value="25"></label>
+            </div>
+            <p class="dialog-error" data-error hidden></p>
+            <div class="dialog-actions">
+                <span class="spacer"></span>
+                <button value="cancel" class="secondary" formnovalidate>Cancel</button>
+                <button value="ok" class="primary">Apply</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="dlg-compress">
+        <form method="dialog">
+            <h2>Reduce File Size</h2>
+            <p class="dialog-hint">ย่อรูปภาพที่ละเอียดเกินจำเป็นและจัดระเบียบไฟล์ แล้วบันทึกเป็นไฟล์ใหม่ (ไฟล์เดิมไม่ถูกแก้)</p>
+            <fieldset class="option-group">
+                <legend>คุณภาพ</legend>
+                <label><input type="radio" name="compress-level" value="high"> High quality — รูปไม่เกิน 200 dpi</label>
+                <label><input type="radio" name="compress-level" value="standard" checked> Standard — รูปไม่เกิน 150 dpi (แนะนำ)</label>
+                <label><input type="radio" name="compress-level" value="small"> Smallest — รูปไม่เกิน 100 dpi</label>
+            </fieldset>
+            <div class="dialog-actions">
+                <span class="spacer"></span>
+                <button value="cancel" class="secondary" formnovalidate>Cancel</button>
+                <button value="ok" class="primary">Reduce Size</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="dlg-protect" class="dialog-wide">
+        <form method="dialog">
+            <h2>Protect with Password</h2>
+            <p class="dialog-hint">เข้ารหัสแบบ AES-256 แล้วบันทึกเป็นไฟล์ — จำรหัสผ่านไว้ให้ดี ถ้าลืมจะเปิดไฟล์ไม่ได้อีก</p>
+            <fieldset class="option-group">
+                <legend><label class="option-row"><input type="checkbox" id="prot-open-on" checked> Require a password to open the document</label></legend>
+                <div class="field-row">
+                    <label class="field"><span>รหัสผ่านเปิดไฟล์</span><input id="prot-open-pw" type="password" autocomplete="new-password"></label>
+                    <label class="field"><span>ยืนยันรหัสผ่าน</span><input id="prot-open-pw2" type="password" autocomplete="new-password"></label>
+                </div>
+            </fieldset>
+            <fieldset class="option-group">
+                <legend><label class="option-row"><input type="checkbox" id="prot-perm-on"> Restrict editing and printing</label></legend>
+                <div class="field-row">
+                    <label class="field"><span>รหัสผ่านเปลี่ยนสิทธิ์</span><input id="prot-perm-pw" type="password" autocomplete="new-password"></label>
+                    <label class="field"><span>ยืนยันรหัสผ่าน</span><input id="prot-perm-pw2" type="password" autocomplete="new-password"></label>
+                </div>
+                <div class="field-row">
+                    <label class="field"><span>Printing Allowed</span>
+                        <select id="prot-print">
+                            <option value="full">High Resolution</option>
+                            <option value="low">Low Resolution</option>
+                            <option value="none">None</option>
+                        </select>
+                    </label>
+                    <label class="field"><span>Changes Allowed</span>
+                        <select id="prot-modify">
+                            <option value="none">None</option>
+                            <option value="assembly">Inserting, deleting, and rotating pages</option>
+                            <option value="form">Filling in form fields and signing</option>
+                            <option value="annotate">Commenting, filling in form fields, and signing</option>
+                            <option value="all">Any except extracting pages</option>
+                        </select>
+                    </label>
+                </div>
+                <label class="option-row"><input type="checkbox" id="prot-copy"> Enable copying of text, images, and other content</label>
+            </fieldset>
+            <p class="dialog-error" data-error hidden></p>
+            <div class="dialog-actions">
+                <span class="spacer"></span>
+                <button value="cancel" class="secondary" formnovalidate>Cancel</button>
+                <button value="ok" class="primary">Protect &amp; Save…</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="dlg-redact">
+        <form method="dialog">
+            <h2>Apply Redactions</h2>
+            <p id="redact-summary"></p>
+            <p class="dialog-hint">หน้าที่มีกรอบจะถูกแปลงเป็นภาพ และข้อความ ลิงก์ ความคิดเห็น และช่องฟอร์มบนหน้านั้นจะถูกลบออกจากไฟล์ทั้งหมด ย้อนกลับไม่ได้หลังบันทึก</p>
+            <label class="option-row"><input type="checkbox" id="redact-ocr" checked> ทำ OCR หน้าเหล่านั้นใหม่ ให้ค้นหาข้อความที่เหลือได้</label>
+            <div class="dialog-actions">
+                <span class="spacer"></span>
+                <button value="cancel" class="secondary" formnovalidate>Cancel</button>
+                <button value="ok" class="primary danger-fill">Apply Redactions</button>
             </div>
         </form>
     </dialog>

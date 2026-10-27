@@ -126,6 +126,27 @@ ipcMain.handle('file:save', async (_e, { data, filePath, suggestedName }) => {
 // Windows, allows editable embedding (OS/2 fsType), and is the only Thai
 // system font that both subsets correctly with fontkit and positions
 // stacked marks (e.g. น้ำ) correctly; Leelawadee UI fails at both.
+// Writes several new files into a folder the user picks. Existing files
+// are never overwritten: "name.pdf" becomes "name (2).pdf".
+ipcMain.handle('file:save-many', async (_e, { files, title }) => {
+    const res = await dialog.showOpenDialog(mainWindow, {
+        title: title || 'Choose folder',
+        properties: ['openDirectory', 'createDirectory'],
+    });
+    if (res.canceled || !res.filePaths.length) return null;
+    const folder = res.filePaths[0];
+    for (const file of files) {
+        const ext = path.extname(file.name);
+        const stem = path.basename(file.name, ext);
+        let target = path.join(folder, path.basename(file.name));
+        for (let n = 2; await fs.access(target).then(() => true, () => false); n++) {
+            target = path.join(folder, `${stem} (${n})${ext}`);
+        }
+        await fs.writeFile(target, Buffer.from(file.data));
+    }
+    return { folder, count: files.length };
+});
+
 ipcMain.handle('font:thai', async () => {
     const fontsDir = path.join(process.env.WINDIR || 'C:\\Windows', 'Fonts');
     try {

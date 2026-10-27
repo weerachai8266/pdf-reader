@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('host', {
     readFile: (filePath) => ipcRenderer.invoke('file:read', filePath),
     pathForFile: (file) => webUtils.getPathForFile(file),
     save: (payload) => ipcRenderer.invoke('file:save', payload),
+    saveMany: (payload) => ipcRenderer.invoke('file:save-many', payload),
     setDirty: (dirty) => ipcRenderer.send('doc:dirty', dirty),
     thaiFont: () => ipcRenderer.invoke('font:thai'),
     onFileOpened: (cb) => ipcRenderer.on('file:opened', (_e, file) => cb(file)),

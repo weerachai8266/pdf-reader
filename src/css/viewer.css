@@ -128,7 +128,8 @@
 [data-tool='highlight'] .annotationLayer,
 [data-tool='note'] .annotationLayer,
 [data-tool='image'] .annotationLayer,
-[data-tool='eraser'] .annotationLayer {
+[data-tool='eraser'] .annotationLayer,
+[data-tool='redact'] .annotationLayer {
     visibility: hidden;
 }
 
@@ -142,7 +143,8 @@
 }
 
 .annot-highlight,
-.annot-image {
+.annot-image,
+.annot-redact {
     position: absolute;
     transform-origin: 0 100%;
     transform: rotate(var(--angle, 0rad));
@@ -210,7 +212,24 @@
     outline: 2px dashed var(--accent);
 }
 
+/* Marked for redaction, not yet applied: red outline over a dark tint. */
+.annot-redact {
+    border: 2px solid var(--danger);
+    background: rgb(0 0 0 / 0.35);
+}
+
+.annot-redact.is-drawing {
+    border-style: dashed;
+}
+
 /* ---- tool modes ------------------------------------------------------- */
+
+[data-tool='redact'] .page,
+[data-tool='redact'] .textLayer,
+[data-tool='redact'] .textLayer span {
+    cursor: crosshair;
+    user-select: none;
+}
 
 [data-tool='note'] .page,
 [data-tool='image'] .page {

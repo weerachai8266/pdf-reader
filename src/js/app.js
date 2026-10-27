@@ -16,6 +16,11 @@ import { initUpdateNotice } from './update.js';
 import { resetLinkServices } from './links.js';
 import { recognizeText } from './recognize.js';
 import { pageHasText } from './ocr.js';
+import { extractPages, splitDocument } from './extract.js';
+import { headerFooter, watermark } from './stamp.js';
+import { reduceFileSize } from './compress.js';
+import { initProtect, protectDocument, removeSecurity } from './protect.js';
+import { applyRedactions, pendingRedactions } from './redact.js';
 
 const $ = (id) => document.getElementById(id);
 const APP_NAME = 'PDF Reader';
@@ -33,8 +38,10 @@ async function init() {
     bindCopy();
     bindFormEdits(scroller);
     initUpdateNotice();
+    initProtect();
 
     on('dirty-changed', updateTitle);
+    for (const event of ['annots-changed', 'pages-changed', 'source-replaced']) on(event, updateRedactButton);
     on('current-page', (idx) => {
         $('page-input').value = idx + 1;
     });
@@ -71,11 +78,22 @@ async function confirmDiscard() {
     });
 }
 
-async function openFile(file) {
-    if (!(await confirmDiscard())) return;
+// Bumped by every open; a load that finishes after a newer open started
+// is dropped instead of replacing the newer document.
+let openSeq = 0;
+
+// password: known password to try first (after Protect re-opens the file).
+async function openFile(file, { password = null, force = false } = {}) {
+    if (!force && !(await confirmDiscard())) return;
+    const seq = ++openSeq;
     setBusy(true);
     try {
-        const pdf = await loadPdf(file.data, askPassword);
+        const ask = password ? async (retry) => (retry ? askPassword(true) : password) : askPassword;
+        const pdf = await loadPdf(file.data, ask);
+        if (seq !== openSeq) {
+            pdf.loadingTask.destroy();
+            return;
+        }
         resetDocument();
         resetLinkServices();
         clearViewer();
@@ -85,14 +103,15 @@ async function openFile(file) {
         state.filePath = file.path;
         state.fileName = file.name;
         setTool('select');
+        updateRedactButton();
         await rebuild();
         scrollToIndex(0);
         updateUi();
         announceDocument(pdf);
     } catch (err) {
-        reportLoadError(err, file.name);
+        if (seq === openSeq) reportLoadError(err, file.name);
     } finally {
-        setBusy(false);
+        if (seq === openSeq) setBusy(false);
     }
 }
 
@@ -138,6 +157,15 @@ async function openDialog() {
 
 async function save(asNew) {
     if (!hasDocument()) return;
+    if (pendingRedactions().marks) {
+        // Saving marks without applying them would leave the content in the file.
+        const apply = await confirmDialog({
+            title: 'ยังไม่ได้ลบเนื้อหาที่ทำเครื่องหมาย Redact',
+            message: 'กรอบ Redact ยังไม่ได้ลบเนื้อหาจริง ต้องกด Apply Redactions ก่อนบันทึก',
+            okLabel: 'Apply Redactions',
+        });
+        if (!apply || !(await applyRedactions())) return;
+    }
     setBusy(true);
     try {
         const { data, warnings } = await buildPdf();
@@ -162,8 +190,9 @@ async function save(asNew) {
 
 async function printDocument() {
     const [first] = state.sources.values();
+    // null when unrestricted; an array or Set of PermissionFlag values otherwise.
     const perms = await first.pdf.getPermissions().catch(() => null);
-    if (perms && !perms.includes(pdfjsLib.PermissionFlag.PRINT)) {
+    if (perms && ![...perms].includes(pdfjsLib.PermissionFlag.PRINT)) {
         toast('เจ้าของเอกสารไม่อนุญาตให้พิมพ์ไฟล์นี้', 'error');
         return;
     }
@@ -201,6 +230,10 @@ function updateUi() {
     updateTitle();
 }
 
+function updateRedactButton() {
+    $('apply-redactions').hidden = !pendingRedactions().marks;
+}
+
 function setBusy(busy) {
     document.body.classList.toggle('is-busy', busy);
 }
@@ -227,6 +260,18 @@ const actions = {
     'last-page': () => scrollToIndex(state.pages.length - 1),
     signature: openSignatureDialog,
     ocr: recognizeText,
+    extract: extractPages,
+    split: splitDocument,
+    'page-numbers': () => headerFooter({ pageNumbers: true }),
+    'header-footer': () => headerFooter(),
+    watermark,
+    compress: reduceFileSize,
+    protect: () => protectDocument((file, password) => openFile(file, { password, force: true })),
+    'remove-security': removeSecurity,
+    'apply-redactions': async () => {
+        if (await applyRedactions()) setTool('select');
+    },
+    'tool-redact': () => setTool('redact'),
     'tool-select': () => setTool('select'),
     'tool-highlight': () => setTool('highlight'),
     'tool-note': () => setTool('note'),

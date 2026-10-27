@@ -40,7 +40,7 @@ const evaluate = (expression) => new Promise((resolve) => {
         resolve(msg.result?.result?.value);
     };
     ws.addEventListener('message', onMsg);
-    ws.send(JSON.stringify({ id: my, method: 'Runtime.evaluate', params: { expression, returnByValue: true } }));
+    ws.send(JSON.stringify({ id: my, method: 'Runtime.evaluate', params: { expression, returnByValue: true, awaitPromise: true } }));
 });
 
 async function waitFor(expr, ms = 15000) {
@@ -72,6 +72,20 @@ if (process.argv.includes('--ocr')) {
     const ok = await waitFor(`/OCR เสร็จ/.test(document.getElementById('toast').textContent) && document.querySelector('.textLayer')?.textContent.length > 0`, 120000);
     if (!ok) failed++;
     console.log(`${ok ? 'PASS' : 'FAIL'}  OCR in packaged build`, await evaluate(`document.getElementById('toast').textContent`));
+}
+// qpdf (WebAssembly in a worker) must load from inside app.asar.
+{
+    const out = await evaluate(`(async () => {
+        const { optimize, encrypt, isEncrypted } = await import('./js/qpdf.js');
+        const { state } = await import('./js/docstate.js');
+        const [src] = state.sources.values();
+        const packed = await optimize(src.bytes);
+        const locked = await encrypt(packed, { userPassword: 'x', ownerPassword: 'y', perms: { print: 'none', modify: 'none', extract: false } });
+        return [packed.length > 0, await isEncrypted(locked)].join();
+    })().catch((e) => 'error: ' + e.message)`);
+    const ok = out === 'true,true';
+    if (!ok) failed++;
+    console.log(`${ok ? 'PASS' : 'FAIL'}  qpdf optimize + encrypt in packaged build`, ok ? '' : out);
 }
 console.log('version:', await evaluate(`document.getElementById('app-version').textContent`));
 console.log('font:', await evaluate(`getComputedStyle(document.body).fontFamily`));

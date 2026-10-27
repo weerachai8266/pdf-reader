@@ -150,6 +150,21 @@ kbd {
     color: var(--accent);
 }
 
+.toolbar .apply-redactions {
+    border-color: var(--danger);
+    background: var(--danger);
+    color: #fff;
+}
+
+.toolbar .apply-redactions:hover:not(:disabled) {
+    background: var(--danger);
+    filter: brightness(1.1);
+}
+
+.toolbar .apply-redactions[hidden] {
+    display: none;
+}
+
 .toolbar select {
     border-color: var(--border);
     background: var(--surface);

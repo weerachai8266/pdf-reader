@@ -71,6 +71,24 @@ function buildMenu(getWindow, { checkForUpdates }) {
             ],
         },
         {
+            label: '&Document',
+            submenu: [
+                item('E&xtract Pages…', 'extract'),
+                item('&Split Document…', 'split'),
+                { type: 'separator' },
+                item('Add Page &Numbers…', 'page-numbers'),
+                item('&Header && Footer…', 'header-footer'),
+                item('Add &Watermark…', 'watermark'),
+                { type: 'separator' },
+                item('&Mark for Redaction', 'tool-redact'),
+                item('&Apply Redactions…', 'apply-redactions'),
+                { type: 'separator' },
+                item('&Reduce File Size…', 'compress'),
+                item('&Protect with Password…', 'protect'),
+                item('Remove Se&curity…', 'remove-security'),
+            ],
+        },
+        {
             label: '&Help',
             submenu: [
                 { label: 'Check for &Updates', click: () => checkForUpdates() },

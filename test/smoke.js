@@ -23,6 +23,9 @@ function check(name, ok, detail = '') {
 
 let nextSavePath = savedPdf;
 dialog.showSaveDialog = async () => ({ canceled: false, filePath: nextSavePath });
+// Folder picker (Split / Extract as separate files).
+let nextFolder = outDir;
+dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [nextFolder] });
 
 // Printing is redirected to a PDF file so the test can inspect the job
 // without a printer or the Windows print dialog.
@@ -158,9 +161,17 @@ async function run() {
         fs.writeFileSync(path.join(outDir, 'reopened.png'), (await win.capturePage()).toPNG());
     }
 
-    await testForms(win, js);
-    await testPrint(win, js);
-    await testOcr(win, js);
+    // SMOKE_ONLY=doctools skips the slower earlier suites while iterating.
+    if (process.env.SMOKE_ONLY !== 'doctools') {
+        await testForms(win, js);
+        await testPrint(win, js);
+        await testOcr(win, js);
+    }
+    await require('./doctools.js')({
+        win, js, check, waitFor, sleep, outDir, inputPdf,
+        setSavePath: (file) => { nextSavePath = file; },
+        setFolder: (folder) => { nextFolder = folder; },
+    });
 
     console.log(`\nscreenshot: ${shot}\noutput dir: ${outDir}`);
     const failed = results.filter((r) => !r.ok).length;
@@ -360,7 +371,7 @@ async function testOcr(win, js) {
     if (await saveAs(js, ocrSaved)) {
         win.webContents.send('file:opened', { path: ocrSaved, name: 'scanned-ocr.pdf', data: new Uint8Array(fs.readFileSync(ocrSaved)) });
         await waitFor(win, `document.getElementById('file-name').textContent === 'scanned-ocr.pdf'`);
-        check('saved OCR file keeps text layer', await waitFor(win, `document.querySelector('.textLayer')?.textContent.includes('บริษัท')`));
+        check('saved OCR file keeps text layer', await waitFor(win, `document.querySelector('.textLayer')?.textContent.includes('บริษัท') && !document.body.classList.contains('is-busy')`));
     } else {
         check('saved OCR file', false);
     }

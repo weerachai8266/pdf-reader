@@ -205,3 +205,69 @@ dialog h3 {
 .sig-saved-item:hover .sig-remove {
     display: block;
 }
+
+/* ---- document tools ----------------------------------------------------- */
+
+.dialog-error {
+    margin: 10px 0 0;
+    font-size: var(--fs-sm);
+    color: var(--danger);
+}
+
+.dialog-error[hidden] {
+    display: none;
+}
+
+.field-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 0 0 10px;
+}
+
+.field-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 0 0 10px;
+}
+
+.field-row .field {
+    flex: 1 1 120px;
+}
+
+.field select {
+    padding: 7px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+}
+
+.field input:disabled,
+.field select:disabled {
+    opacity: 0.5;
+}
+
+.option-group .field {
+    margin-top: 4px;
+}
+
+.dialog-hint code {
+    padding: 0 4px;
+    border-radius: 4px;
+    background: var(--bg);
+    font-family: Consolas, monospace;
+}
+
+.inline-number {
+    width: 4.5em;
+    padding: 2px 6px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+}
+
+.dialog-actions button.danger-fill {
+    background: var(--danger);
+    border-color: var(--danger);
+}

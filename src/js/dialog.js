@@ -94,12 +94,32 @@ export function progressDialog(title) {
 }
 
 // Shows a <dialog> whose form uses method="dialog"; resolves to true when
-// it closes with returnValue "ok".
-export function showFormDialog(id) {
+// it closes with returnValue "ok". validate() may return a message that
+// keeps the dialog open and is shown in its [data-error] element.
+export function showFormDialog(id, validate = null) {
     const dlg = $(id);
+    const form = dlg.querySelector('form');
+    const error = dlg.querySelector('[data-error]');
+    if (error) error.hidden = true;
     dlg.returnValue = '';
+    const onSubmit = (e) => {
+        if (e.submitter?.value !== 'ok' || !validate) return;
+        const message = validate();
+        if (!message) return;
+        e.preventDefault();
+        if (error) {
+            error.textContent = message;
+            error.hidden = false;
+        } else {
+            toast(message, 'error');
+        }
+    };
+    form?.addEventListener('submit', onSubmit);
     return new Promise((resolve) => {
-        dlg.addEventListener('close', () => resolve(dlg.returnValue === 'ok'), { once: true });
+        dlg.addEventListener('close', () => {
+            form?.removeEventListener('submit', onSubmit);
+            resolve(dlg.returnValue === 'ok');
+        }, { once: true });
         dlg.showModal();
     });
 }
