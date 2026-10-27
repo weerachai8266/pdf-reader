@@ -32,7 +32,8 @@ function fontInfo(page, fontName, cache) {
 
 // A family LibreOffice/Word can find on a Windows PC.
 function familyFor(base) {
-    if (/sarabun/i.test(base)) return 'TH Sarabun New';
+    // Laksaman is the free twin of TH Sarabun New (same metrics).
+    if (/sarabun|laksaman/i.test(base)) return 'TH Sarabun New';
     if (/angsana/i.test(base)) return 'Angsana New';
     if (/cordia/i.test(base)) return 'Cordia New';
     if (/tahoma/i.test(base)) return 'Tahoma';

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- PDF Reader: LibreOffice installation defaults for the bundled converter.
+     Thai government documents are usually set in TH Sarabun New / TH
+     SarabunPSK, which Windows does not ship. When such a font is missing,
+     LibreOffice's font fallback (VCL FontSubstitutions, keyed by the
+     lower-cased name without spaces) picks Laksaman, bundled in
+     share/fonts/truetype: TLWG's GPL re-release of TH Sarabun New with the
+     same glyphs and metrics, so lines break where the author saw them.
+     A PC that has the real font installed keeps using it. -->
+<oor:data xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:oor="http://openoffice.org/2001/registry">
+  <dependency file="main"/>
+  <oor:component-data oor:name="VCL" oor:package="org.openoffice">
+    <node oor:name="FontSubstitutions">
+      <node oor:name="en">
+        <node oor:name="thsarabunnew" oor:op="replace">
+          <prop oor:name="SubstFonts"><value>laksaman;thsarabunpsk;tahoma</value></prop>
+          <prop oor:name="SubstFontsMS"><value>Laksaman</value></prop>
+          <prop oor:name="FontType"><value>Normal</value></prop>
+        </node>
+        <node oor:name="thsarabunpsk" oor:op="replace">
+          <prop oor:name="SubstFonts"><value>laksaman;thsarabunnew;tahoma</value></prop>
+          <prop oor:name="SubstFontsMS"><value>Laksaman</value></prop>
+          <prop oor:name="FontType"><value>Normal</value></prop>
+        </node>
+        <node oor:name="thsarabunit๙" oor:op="replace">
+          <prop oor:name="SubstFonts"><value>laksaman;thsarabunnew;thsarabunpsk;tahoma</value></prop>
+          <prop oor:name="SubstFontsMS"><value>Laksaman</value></prop>
+          <prop oor:name="FontType"><value>Normal</value></prop>
+        </node>
+        <node oor:name="thsarabunit9" oor:op="replace">
+          <prop oor:name="SubstFonts"><value>laksaman;thsarabunnew;thsarabunpsk;tahoma</value></prop>
+          <prop oor:name="SubstFontsMS"><value>Laksaman</value></prop>
+          <prop oor:name="FontType"><value>Normal</value></prop>
+        </node>
+        <node oor:name="thsarabunit" oor:op="replace">
+          <prop oor:name="SubstFonts"><value>laksaman;thsarabunnew;thsarabunpsk;tahoma</value></prop>
+          <prop oor:name="SubstFontsMS"><value>Laksaman</value></prop>
+          <prop oor:name="FontType"><value>Normal</value></prop>
+        </node>
+      </node>
+    </node>
+  </oor:component-data>
+</oor:data>

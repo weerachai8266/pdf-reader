@@ -66,6 +66,35 @@ Get-ChildItem -Path (Join-Path $Staging 'share\config') -Filter 'images_*.zip' |
 Get-ChildItem -Path (Join-Path $Staging 'share\registry\res') -Filter 'registry_*.xcd' |
     Where-Object { $_.Name -ne 'registry_en-US.xcd' } | Remove-Item -Force
 
+# Laksaman (TLWG, GPL-2.0+ with font exception): TH Sarabun New's glyphs
+# and metrics under a free license, used when a document asks for TH Sarabun
+# New / TH SarabunPSK / TH SarabunIT9 and the PC doesn't have it.
+# LibreOffice loads fonts from share\fonts\truetype privately, and every
+# *.xcd in share\registry; lo-fonts.xcd adds the font substitutions.
+$TlwgVersion = '0.7.4'
+$TlwgSha256 = '1419585463255be799496f79dae845dce8f028a5c0814c7fd3264f38f75f5544'
+$TlwgZip = Join-Path $Cache "ttf-tlwg-$TlwgVersion.zip"
+if (-not (Test-Path $TlwgZip) -or (Get-FileHash $TlwgZip -Algorithm SHA256).Hash -ne $TlwgSha256.ToUpper()) {
+    Write-Host "Downloading TLWG fonts $TlwgVersion ..."
+    $ProgressPreference = 'SilentlyContinue'
+    Invoke-WebRequest -Uri "https://github.com/tlwg/fonts-tlwg/releases/download/v$TlwgVersion/ttf-tlwg-$TlwgVersion.zip" -OutFile $TlwgZip -UseBasicParsing
+    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/tlwg/fonts-tlwg/v$TlwgVersion/COPYING" -OutFile (Join-Path $Cache 'tlwg-COPYING') -UseBasicParsing
+}
+if ((Get-FileHash $TlwgZip -Algorithm SHA256).Hash -ne $TlwgSha256.ToUpper()) { throw "SHA-256 mismatch for $TlwgZip" }
+$TlwgDir = Join-Path $Cache 'tlwg'
+if (Test-Path $TlwgDir) { Remove-Item -Recurse -Force $TlwgDir }
+Expand-Archive -Path $TlwgZip -DestinationPath $TlwgDir
+$FontDir = Join-Path $Staging 'share\fonts\truetype'
+New-Item -ItemType Directory -Force $FontDir | Out-Null
+Copy-Item (Join-Path $TlwgDir "ttf-tlwg-$TlwgVersion\Laksaman*.ttf") $FontDir
+Copy-Item (Join-Path $Cache 'tlwg-COPYING') (Join-Path $FontDir 'Laksaman-COPYING.txt')
+Set-Content -Path (Join-Path $FontDir 'Laksaman-SOURCE.txt') -Encoding ascii -Value @(
+    "Laksaman $TlwgVersion from https://github.com/tlwg/fonts-tlwg (tag v$TlwgVersion), unmodified.",
+    'License: GNU GPL v2 or later with font exception, see Laksaman-COPYING.txt.'
+)
+Copy-Item (Join-Path $PSScriptRoot 'lo-fonts.xcd') (Join-Path $Staging 'share\registry\pdfreader-fonts.xcd')
+Remove-Item -Recurse -Force $TlwgDir
+
 if (Test-Path $Target) { Remove-Item -Recurse -Force $Target }
 Move-Item $Staging $Target
 Set-Content -Path (Join-Path $Target 'VERSION.txt') -Value $Version -Encoding ascii

@@ -41,6 +41,7 @@ module.exports = async function testConvert(t) {
         <h1 style="font-family:Tahoma">บันทึกข้อความ</h1>
         <p style="font-family:Tahoma">เรื่อง ขออนุมัติจัดซื้อวัสดุสำนักงาน ประจำปีงบประมาณ 2570</p>
         <p style="font-family:Leelawadee UI">ที่นี่มีน้ำใจ ผู้ใหญ่ใจดี</p>
+        <p style="font-family:'TH SarabunPSK';font-size:16pt">เรียน ผู้อำนวยการ (TH SarabunPSK)</p>
         <p>Total budget 12,500 THB</p></body>`);
     execFileSync(SOFFICE, [
         `-env:UserInstallation=file:///${outDir.replace(/\\/g, '/')}/lo-profile`,
@@ -73,6 +74,16 @@ module.exports = async function testConvert(t) {
     setSavePath(createdPdf);
     await js(`document.querySelector('[data-action="save"]').click()`);
     check('Save asks where to put the new PDF', await waitFile(createdPdf));
+    if (fs.existsSync(createdPdf)) {
+        // TH SarabunPSK isn't installed: the bundled Laksaman stands in.
+        const { PDFDocument, PDFDict, PDFName } = require('pdf-lib');
+        const doc = await PDFDocument.load(fs.readFileSync(createdPdf));
+        const fonts = [];
+        for (const [, obj] of doc.context.enumerateIndirectObjects()) {
+            if (obj instanceof PDFDict && obj.get(PDFName.of('Type')) === PDFName.of('Font')) fonts.push(String(obj.get(PDFName.of('BaseFont'))));
+        }
+        check('TH SarabunPSK converted with bundled Laksaman', fonts.some((f) => f.includes('Laksaman')), fonts.join(' '));
+    }
     await sleep(800);
     fs.writeFileSync(path.join(outDir, 'created.png'), (await win.capturePage()).toPNG());
 
