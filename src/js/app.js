@@ -10,7 +10,7 @@ import { initSearch, focusSearch, resetSearch } from './search.js';
 import { initThumbs, resetThumbs } from './thumbs.js';
 import { initSignature, openSignatureDialog } from './signature.js';
 import { askPassword, confirmDialog, progressDialog, toast } from './dialog.js';
-import { buildPdf } from './save.js';
+import { buildPdf, willRewriteFile } from './save.js';
 import { cleanCopiedText } from './thai.js';
 import { initUpdateNotice } from './update.js';
 import { resetLinkServices } from './links.js';
@@ -22,6 +22,9 @@ import { reduceFileSize } from './compress.js';
 import { initProtect, protectDocument, removeSecurity } from './protect.js';
 import { applyRedactions, pendingRedactions } from './redact.js';
 import { CONVERTIBLE, filesToPdfs, exportWord, exportImages, exportText } from './convert.js';
+import { initSignatures, checkSignatures, hasSignatures } from './signatures.js';
+import { initCertSign, startCertSign } from './certsign.js';
+import { initCompare, compareFiles, clearCompare } from './compare.js';
 
 const $ = (id) => document.getElementById(id);
 const APP_NAME = 'PDF Reader';
@@ -40,6 +43,9 @@ async function init() {
     bindFormEdits(scroller);
     initUpdateNotice();
     initProtect();
+    initSignatures();
+    initCertSign((file) => openFile(file, { force: true }));
+    initCompare();
 
     on('dirty-changed', updateTitle);
     for (const event of ['annots-changed', 'pages-changed', 'source-replaced']) on(event, updateRedactButton);
@@ -100,6 +106,7 @@ async function openFile(file, { password = null, force = false } = {}) {
         clearViewer();
         resetThumbs();
         resetSearch();
+        clearCompare();
         addSource({ name: file.name, bytes: file.data, pdf });
         state.filePath = file.path;
         state.fileName = file.name;
@@ -109,6 +116,7 @@ async function openFile(file, { password = null, force = false } = {}) {
         scrollToIndex(0);
         updateUi();
         announceDocument(pdf);
+        checkSignatures().catch((err) => console.warn('signature check failed', err));
     } catch (err) {
         if (seq === openSeq) reportLoadError(err, file.name);
     } finally {
@@ -196,6 +204,14 @@ async function save(asNew) {
             okLabel: 'Apply Redactions',
         });
         if (!apply || !(await applyRedactions())) return;
+    }
+    if (hasSignatures() && willRewriteFile()) {
+        const go = await confirmDialog({
+            title: 'เอกสารนี้มีลายเซ็นดิจิทัล',
+            message: 'การแก้ไขนี้ (เช่น ไฮไลต์ จัดหน้า โน้ต) จะทำให้ลายเซ็นดิจิทัลในไฟล์ที่บันทึกใช้ไม่ได้ ถ้าต้องการเก็บไฟล์ที่เซ็นแล้วไว้ ให้ใช้ Save As เป็นไฟล์ใหม่',
+            okLabel: 'Save Anyway',
+        });
+        if (!go) return;
     }
     setBusy(true);
     try {
@@ -294,6 +310,10 @@ const actions = {
     'first-page': () => scrollToIndex(0),
     'last-page': () => scrollToIndex(state.pages.length - 1),
     signature: openSignatureDialog,
+    'cert-sign': startCertSign,
+    compare: compareFiles,
+    'show-signatures': () => showPanel('signatures'),
+    'show-compare': () => showPanel('compare'),
     ocr: recognizeText,
     extract: extractPages,
     split: splitDocument,

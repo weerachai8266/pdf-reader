@@ -59,6 +59,7 @@
             </span>
             <button type="button" data-tool="note" data-needs-doc aria-pressed="false" title="Add Note (N) — click on the page" aria-label="Add Note"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-message-square-text"></use></svg></button>
             <button type="button" data-action="signature" data-needs-doc title="Fill &amp; Sign" aria-label="Fill &amp; Sign"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-signature"></use></svg></button>
+            <button type="button" data-action="cert-sign" data-needs-doc title="Sign with Certificate (digital signature)" aria-label="Sign with Certificate"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-pen-tool"></use></svg></button>
             <button type="button" data-tool="redact" data-needs-doc aria-pressed="false" title="Mark for Redaction — drag over content to remove" aria-label="Mark for Redaction"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-rectangle-horizontal"></use></svg></button>
             <button type="button" data-tool="eraser" data-needs-doc aria-pressed="false" title="Eraser — click a highlight, note, signature or redaction mark" aria-label="Eraser"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-eraser"></use></svg></button>
             <button type="button" data-action="apply-redactions" class="apply-redactions" id="apply-redactions" hidden title="Permanently remove marked content">Apply Redactions</button>
@@ -73,11 +74,19 @@
         </div>
     </header>
 
+    <div class="sig-banner" id="sig-banner" hidden>
+        <span class="sig-banner-icon" id="sig-banner-icon"></span>
+        <span id="sig-banner-text"></span>
+        <button type="button" id="sig-banner-open">Signature Panel</button>
+    </div>
+
     <div class="workspace">
         <aside class="sidebar">
             <div class="sidebar-tabs" role="tablist">
-                <button type="button" role="tab" data-action="show-thumbs" data-panel-tab="thumbs" aria-selected="true">Pages</button>
-                <button type="button" role="tab" data-action="show-search" data-panel-tab="search" aria-selected="false">Find</button>
+                <button type="button" role="tab" data-action="show-thumbs" data-panel-tab="thumbs" aria-selected="true" title="Pages" aria-label="Pages"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-files"></use></svg></button>
+                <button type="button" role="tab" data-action="show-search" data-panel-tab="search" aria-selected="false" title="Find" aria-label="Find"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-search"></use></svg></button>
+                <button type="button" role="tab" data-action="show-signatures" data-panel-tab="signatures" aria-selected="false" title="Signatures" aria-label="Signatures" hidden><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-shield-check"></use></svg></button>
+                <button type="button" role="tab" data-action="show-compare" data-panel-tab="compare" aria-selected="false" title="Compare" aria-label="Compare" hidden><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-git-compare"></use></svg></button>
             </div>
 
             <section class="panel" data-panel="thumbs">
@@ -95,6 +104,20 @@
                 <p class="empty-hint" id="search-empty" hidden>ไม่พบข้อความนี้ในเอกสาร</p>
                 <ol class="search-results" id="search-results"></ol>
                 <nav class="pager" id="search-pager" aria-label="Result pages"></nav>
+            </section>
+            <section class="panel" data-panel="signatures" hidden>
+                <p class="empty-hint" id="sig-empty">เอกสารนี้ไม่มีลายเซ็นดิจิทัล</p>
+                <ol class="sig-list" id="sig-list"></ol>
+            </section>
+
+            <section class="panel" data-panel="compare" hidden>
+                <div class="cmp-top">
+                    <p class="search-status" id="cmp-summary"></p>
+                    <button type="button" id="cmp-clear" class="cmp-clear" title="Close comparison" aria-label="Close comparison" hidden><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-x"></use></svg></button>
+                </div>
+                <p class="empty-hint" id="cmp-empty" hidden>ข้อความของทั้งสองไฟล์ตรงกัน</p>
+                <ol class="cmp-list" id="cmp-list"></ol>
+                <nav class="pager" id="cmp-pager" aria-label="Change pages"></nav>
             </section>
         </aside>
 
@@ -396,6 +419,86 @@
                 <span class="spacer"></span>
                 <button value="cancel" class="secondary" formnovalidate>Cancel</button>
                 <button value="ok" class="primary">Export</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="dlg-cs-where">
+        <form method="dialog">
+            <h2>Sign with Certificate</h2>
+            <p class="dialog-hint">ลายเซ็นดิจิทัลยืนยันว่าใครเป็นผู้เซ็น และตรวจได้ว่าเอกสารถูกแก้ไขหลังเซ็นหรือไม่ ใช้ Digital ID (ไฟล์ .pfx/.p12) จากผู้ให้บริการออกใบรับรอง หรือสร้างขึ้นเองในโปรแกรม</p>
+            <p>กด "Drag New Signature Box" แล้วลากกรอบบนหน้าตรงตำแหน่งที่จะแสดงลายเซ็น</p>
+            <div class="dialog-actions">
+                <button type="button" id="cs-invisible" class="secondary">Sign Without Visible Box</button>
+                <span class="spacer"></span>
+                <button value="cancel" class="secondary" formnovalidate>Cancel</button>
+                <button value="ok" class="primary">Drag New Signature Box</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="dlg-certsign">
+        <form method="dialog">
+            <h2>Sign with Certificate</h2>
+            <label class="field"><span>Digital ID</span>
+                <select id="cs-id"></select>
+            </label>
+            <p class="empty-hint" id="cs-no-ids">ยังไม่มี Digital ID — สร้างใหม่ หรือนำเข้าไฟล์ .pfx / .p12</p>
+            <div class="inline-actions">
+                <button type="button" id="cs-new-id" class="secondary">New Digital ID…</button>
+                <button type="button" id="cs-import-id" class="secondary">Import…</button>
+            </div>
+            <label class="field"><span>รหัสผ่าน Digital ID</span><input id="cs-password" type="password" autocomplete="off"></label>
+            <div class="field-row">
+                <label class="field"><span>เหตุผล (ไม่บังคับ)</span><input id="cs-reason" type="text" autocomplete="off" placeholder="เช่น อนุมัติ"></label>
+                <label class="field"><span>สถานที่ (ไม่บังคับ)</span><input id="cs-location" type="text" autocomplete="off"></label>
+            </div>
+            <p class="dialog-hint">หลังเซ็น โปรแกรมจะถามที่บันทึกไฟล์ แล้วเปิดไฟล์ที่เซ็นแล้วขึ้นมาแทน</p>
+            <p class="dialog-error" data-error hidden></p>
+            <div class="dialog-actions">
+                <span class="spacer"></span>
+                <button value="cancel" class="secondary" formnovalidate>Cancel</button>
+                <button value="ok" class="primary">Sign &amp; Save…</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="dlg-new-id">
+        <form method="dialog">
+            <h2>New Digital ID</h2>
+            <p class="dialog-hint">สร้าง Digital ID แบบออกเอง (self-signed) RSA 2048 บิต อายุ 5 ปี เก็บไว้ในเครื่องนี้ ผู้รับเอกสารจะเห็นว่า "ยังยืนยันตัวตนผู้เซ็นไม่ได้" จนกว่าจะกด Trust Certificate ถ้าต้องการลายเซ็นที่ยอมรับทั่วไป ให้ใช้ใบรับรองจากผู้ให้บริการออกใบรับรอง (CA)</p>
+            <label class="field"><span>ชื่อ-นามสกุล</span><input id="nid-name" type="text" autocomplete="off"></label>
+            <div class="field-row">
+                <label class="field"><span>หน่วยงาน</span><input id="nid-org" type="text" autocomplete="off"></label>
+                <label class="field"><span>อีเมล</span><input id="nid-email" type="email" autocomplete="off"></label>
+            </div>
+            <div class="field-row">
+                <label class="field"><span>รหัสผ่าน (อย่างน้อย 6 ตัว)</span><input id="nid-pw" type="password" autocomplete="new-password"></label>
+                <label class="field"><span>ยืนยันรหัสผ่าน</span><input id="nid-pw2" type="password" autocomplete="new-password"></label>
+            </div>
+            <p class="dialog-error" data-error hidden></p>
+            <div class="dialog-actions">
+                <span class="spacer"></span>
+                <button value="cancel" class="secondary" formnovalidate>Cancel</button>
+                <button value="ok" class="primary">Create</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="dlg-compare">
+        <form method="dialog">
+            <h2>Compare Files</h2>
+            <p>เปรียบเทียบข้อความระหว่างเอกสารที่เปิดอยู่ กับ <strong id="cmp-other-name"></strong></p>
+            <fieldset class="option-group">
+                <legend>ไฟล์ที่เลือกคือ</legend>
+                <label><input type="radio" name="cmp-role" value="old" checked> ฉบับเก่า (ดูว่าฉบับที่เปิดอยู่เปลี่ยนอะไรไป)</label>
+                <label><input type="radio" name="cmp-role" value="new"> ฉบับใหม่</label>
+            </fieldset>
+            <p class="dialog-hint">เปรียบเทียบเฉพาะข้อความ ไฟล์สแกนต้องทำ OCR ก่อน</p>
+            <div class="dialog-actions">
+                <span class="spacer"></span>
+                <button value="cancel" class="secondary" formnovalidate>Cancel</button>
+                <button value="ok" class="primary">Compare</button>
             </div>
         </form>
     </dialog>

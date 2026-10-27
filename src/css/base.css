@@ -16,6 +16,11 @@
     --accent: #2f6fde;
     --accent-soft: #dfe9fb;
     --danger: #c62828;
+    --danger-soft: #fde7e7;
+    --ok: #2e7d32;
+    --ok-soft: #e3f3e4;
+    --warn: #b26a00;
+    --warn-soft: #fff1d6;
     --viewer-bg: #50555e;
     --shadow: 0 1px 3px rgb(0 0 0 / 0.25), 0 4px 12px rgb(0 0 0 / 0.12);
 
@@ -43,6 +48,11 @@
         --accent: #6f9ef5;
         --accent-soft: #2c3b58;
         --viewer-bg: #16181c;
+        --ok: #6cc070;
+        --ok-soft: #1f3322;
+        --warn: #e0a640;
+        --warn-soft: #3a2f1a;
+        --danger-soft: #3d2020;
     }
 }
 
@@ -363,4 +373,42 @@ kbd {
     color: var(--text-muted);
     font-size: var(--fs-sm);
     text-align: center;
+}
+
+/* ---- signature status bar (above the pages) --------------------------- */
+
+.sig-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    padding: 2px 10px;
+    border-bottom: 1px solid var(--border);
+    background: var(--banner-bg, var(--surface-2));
+    color: var(--text);
+    font-size: var(--fs-sm);
+}
+
+.sig-banner[hidden] {
+    display: none;
+}
+
+.sig-banner[data-status='valid'],
+.sig-banner[data-status='changed'] { --banner-bg: var(--ok-soft); --banner-icon: var(--ok); }
+.sig-banner[data-status='unknown'] { --banner-bg: var(--warn-soft); --banner-icon: var(--warn); }
+.sig-banner[data-status='invalid'] { --banner-bg: var(--danger-soft); --banner-icon: var(--danger); }
+
+.sig-banner-icon {
+    display: inline-flex;
+    color: var(--banner-icon);
+}
+
+.sig-banner button {
+    margin-left: auto;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    font-size: var(--fs-xs);
+    line-height: 1.8;
 }

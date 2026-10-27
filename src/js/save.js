@@ -41,6 +41,13 @@ function onlyFormChanges() {
     return pagesUntouched && noAnnots;
 }
 
+// True when Save would rewrite the whole file (anything beyond filling
+// Latin form values), which breaks existing digital signatures.
+export function willRewriteFile() {
+    const [firstSrc] = state.sources.values();
+    return !(onlyFormChanges() && firstSrc && !hasNonLatinFormValues(firstSrc));
+}
+
 // Returns { data, warnings }.
 export async function buildPdf() {
     const formOnly = onlyFormChanges();

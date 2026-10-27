@@ -206,8 +206,10 @@ function mergeLineRects(rects) {
 
 // Drag a rectangle on the page; it becomes a redaction mark that
 // redact.js turns into real removal.
+// The same drag picks the area of a certificate signature (tool
+// 'certsign'), which certsign.js handles.
 function startRedactMark(e) {
-    if (tool !== 'redact' || e.button !== 0) return;
+    if ((tool !== 'redact' && tool !== 'certsign') || e.button !== 0) return;
     const view = viewFromEvent(e);
     if (!view || !view.viewport) return;
     e.preventDefault();
@@ -232,7 +234,9 @@ function startRedactMark(e) {
         target.removeEventListener('pointerup', up);
         box.remove();
         if (!rect || rect.right - rect.left < 3 || rect.bottom - rect.top < 3) return;
-        addAnnot(view.entry.key, { type: 'redact', quad: quadFromViewRect(view.viewport, rect.left, rect.top, rect.right, rect.bottom) });
+        const quad = quadFromViewRect(view.viewport, rect.left, rect.top, rect.right, rect.bottom);
+        if (tool === 'certsign') emit('cert-sign-area', { entry: view.entry, quad });
+        else addAnnot(view.entry.key, { type: 'redact', quad });
     };
     target.addEventListener('pointermove', move);
     target.addEventListener('pointerup', up);

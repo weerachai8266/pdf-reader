@@ -1,7 +1,7 @@
 {
   "name": "pdf-reader",
   "productName": "PDF Reader",
-  "version": "0.7.2",
+  "version": "0.8.0",
   "description": "โปรแกรมอ่าน PDF ที่เบา เร็ว รองรับภาษาไทย ไฮไลต์ คอมเมนต์ เซ็น และจัดการหน้าได้ฟรี",
   "author": "PDF Reader",
   "main": "main/main.js",
@@ -21,6 +21,7 @@
     "@tesseract.js-data/eng": "^1.0.0",
     "@tesseract.js-data/tha": "^1.0.0",
     "electron-updater": "^6.8.11",
+    "node-forge": "^1.4.1",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.4.299",
     "tesseract.js": "^7.0.0"

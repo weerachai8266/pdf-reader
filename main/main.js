@@ -8,6 +8,7 @@ const { initUpdater } = require('./updater');
 const { buildMenu } = require('./menu');
 const { initPrint } = require('./print');
 const { initConvert } = require('./convert');
+const { initDigsig } = require('./digsig');
 
 const APP_ROOT = path.join(__dirname, '..');
 
@@ -180,6 +181,7 @@ if (!gotLock) {
         createWindow();
         initPrint();
         initConvert(() => mainWindow);
+        initDigsig(() => mainWindow);
         const updater = initUpdater(() => mainWindow);
         buildMenu(() => mainWindow, { checkForUpdates: () => updater.checkNow() });
     });

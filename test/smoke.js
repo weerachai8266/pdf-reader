@@ -45,6 +45,10 @@ app.on('web-contents-created', (_e, wc) => {
     };
 });
 
+// Keep Digital IDs, trusted certificates and the converter profile out of
+// the real user profile.
+app.setPath('userData', path.join(outDir, 'userData'));
+
 // main.js must be loaded before the app is ready (it registers app://).
 require('../main/main.js');
 
@@ -167,21 +171,27 @@ async function run() {
         fs.writeFileSync(path.join(outDir, 'reopened.png'), (await win.capturePage()).toPNG());
     }
 
-    // SMOKE_ONLY=doctools|convert skips the slower earlier suites while iterating.
+    // SMOKE_ONLY=doctools|convert|digsig skips the slower earlier suites while iterating.
     if (!process.env.SMOKE_ONLY) {
         await testForms(win, js);
         await testPrint(win, js);
         await testOcr(win, js);
     }
-    if (process.env.SMOKE_ONLY !== 'convert') await require('./doctools.js')({
+    const only = process.env.SMOKE_ONLY;
+    if (!only || only === 'doctools') await require('./doctools.js')({
         win, js, check, waitFor, sleep, outDir, inputPdf,
         setSavePath: (file) => { nextSavePath = file; },
         setFolder: (folder) => { nextFolder = folder; },
     });
-    await require('./convert.js')({
+    if (!only || only === 'convert') await require('./convert.js')({
         win, js, check, waitFor, sleep, outDir, inputPdf,
         setSavePath: (file) => { nextSavePath = file; },
         setFolder: (folder) => { nextFolder = folder; },
+        setOpenPaths: (paths) => { nextOpenPaths = paths; },
+    });
+    if (!only || only === 'digsig') await require('./digsig.js')({
+        win, js, check, waitFor, sleep, outDir, inputPdf,
+        setSavePath: (file) => { nextSavePath = file; },
         setOpenPaths: (paths) => { nextOpenPaths = paths; },
     });
 

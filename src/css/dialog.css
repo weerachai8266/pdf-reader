@@ -267,6 +267,25 @@ dialog h3 {
     background: var(--bg);
 }
 
+.inline-actions {
+    display: flex;
+    gap: 8px;
+    margin: 6px 0 10px;
+}
+
+.inline-actions button {
+    padding: 4px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    font-size: var(--fs-sm);
+}
+
+#cs-no-ids[hidden],
+#cs-id[hidden] {
+    display: none;
+}
+
 .dialog-actions button.danger-fill {
     background: var(--danger);
     border-color: var(--danger);

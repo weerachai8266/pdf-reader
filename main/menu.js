@@ -75,9 +75,11 @@ function buildMenu(getWindow, { checkForUpdates }) {
                 item('&Highlight', 'tool-highlight', 'H'),
                 item('Add &Note', 'tool-note', 'N'),
                 item('&Fill & Sign…', 'signature'),
+                item('Sign with &Certificate…', 'cert-sign'),
                 item('&Eraser', 'tool-eraser'),
                 { type: 'separator' },
                 item('&Recognize Text (OCR)…', 'ocr'),
+                item('Com&pare Files…', 'compare'),
             ],
         },
         {

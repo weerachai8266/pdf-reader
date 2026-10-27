@@ -87,6 +87,12 @@ if (process.argv.includes('--ocr')) {
     if (!ok) failed++;
     console.log(`${ok ? 'PASS' : 'FAIL'}  qpdf optimize + encrypt in packaged build`, ok ? '' : out);
 }
+// --signed: the file carries digital signatures that must verify.
+if (process.argv.includes('--signed')) {
+    const ok = await waitFor(`!document.getElementById('sig-banner').hidden && document.getElementById('sig-banner').dataset.status !== 'invalid'`, 20000);
+    if (!ok) failed++;
+    console.log(`${ok ? 'PASS' : 'FAIL'}  signatures verified in packaged build`, await evaluate(`document.getElementById('sig-banner-text').textContent`));
+}
 // --convert <file.docx>: LibreOffice bundled under resources/ converts it.
 const convertArg = process.argv.indexOf('--convert');
 if (convertArg > 0) {

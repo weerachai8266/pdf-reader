@@ -129,7 +129,8 @@
 [data-tool='note'] .annotationLayer,
 [data-tool='image'] .annotationLayer,
 [data-tool='eraser'] .annotationLayer,
-[data-tool='redact'] .annotationLayer {
+[data-tool='redact'] .annotationLayer,
+[data-tool='certsign'] .annotationLayer {
     visibility: hidden;
 }
 
@@ -228,11 +229,20 @@
     border-style: dashed;
 }
 
+/* Text that differs from the compared file. */
+.textLayer .compare-diff {
+    background: rgb(46 160 67 / 0.28);
+    border-radius: 2px;
+}
+
 /* ---- tool modes ------------------------------------------------------- */
 
 [data-tool='redact'] .page,
 [data-tool='redact'] .textLayer,
-[data-tool='redact'] .textLayer span {
+[data-tool='redact'] .textLayer span,
+[data-tool='certsign'] .page,
+[data-tool='certsign'] .textLayer,
+[data-tool='certsign'] .textLayer span {
     cursor: crosshair;
     user-select: none;
 }
