@@ -87,6 +87,13 @@ if (process.argv.includes('--ocr')) {
     if (!ok) failed++;
     console.log(`${ok ? 'PASS' : 'FAIL'}  qpdf optimize + encrypt in packaged build`, ok ? '' : out);
 }
+// Fonts for Edit Text / Add Text, including Laksaman from resources/.
+{
+    const sizes = await evaluate(`Promise.all(['tahoma', 'laksaman', 'laksaman-bold', 'arial'].map((k) => window.host.editFont(k).then((b) => (b ? b.length : 0))))`);
+    const ok = Array.isArray(sizes) && sizes.every((n) => n > 10000);
+    if (!ok) failed++;
+    console.log(`${ok ? 'PASS' : 'FAIL'}  edit fonts available in packaged build`, JSON.stringify(sizes));
+}
 // --signed: the file carries digital signatures that must verify.
 if (process.argv.includes('--signed')) {
     const ok = await waitFor(`!document.getElementById('sig-banner').hidden && document.getElementById('sig-banner').dataset.status !== 'invalid'`, 20000);

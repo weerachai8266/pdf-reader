@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('host', {
     saveMany: (payload) => ipcRenderer.invoke('file:save-many', payload),
     setDirty: (dirty) => ipcRenderer.send('doc:dirty', dirty),
     thaiFont: () => ipcRenderer.invoke('font:thai'),
+    editFont: (key) => ipcRenderer.invoke('font:get', key),
     onFileOpened: (cb) => ipcRenderer.on('file:opened', (_e, file) => cb(file)),
     onUpdateStatus: (cb) => ipcRenderer.on('update:status', (_e, status) => cb(status)),
     installUpdate: () => ipcRenderer.invoke('update:install'),

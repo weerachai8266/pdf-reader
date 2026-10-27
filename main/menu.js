@@ -43,6 +43,8 @@ function buildMenu(getWindow, { checkForUpdates }) {
         {
             label: '&Edit',
             submenu: [
+                item('&Undo Edit', 'undo', 'Ctrl+Z'),
+                { type: 'separator' },
                 { label: 'Cu&t', role: 'cut' },
                 { label: '&Copy', role: 'copy' },
                 { label: '&Paste', role: 'paste' },
@@ -76,6 +78,10 @@ function buildMenu(getWindow, { checkForUpdates }) {
                 item('Add &Note', 'tool-note', 'N'),
                 item('&Fill & Sign…', 'signature'),
                 item('Sign with &Certificate…', 'cert-sign'),
+                { type: 'separator' },
+                item('Edit &Text && Images', 'tool-edit'),
+                item('Add Te&xt', 'tool-addtext'),
+                item('Add &Image…', 'add-image'),
                 item('&Eraser', 'tool-eraser'),
                 { type: 'separator' },
                 item('&Recognize Text (OCR)…', 'ocr'),

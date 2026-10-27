@@ -49,6 +49,9 @@
         </div>
 
         <div class="tool-group">
+            <button type="button" data-tool="edit" data-needs-doc aria-pressed="false" title="Edit Text &amp; Images — click a line or an image" aria-label="Edit Text &amp; Images"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-pencil-line"></use></svg></button>
+            <button type="button" data-tool="addtext" data-needs-doc aria-pressed="false" title="Add Text — click where the text goes" aria-label="Add Text"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-type"></use></svg></button>
+            <button type="button" data-action="add-image" data-needs-doc title="Add Image" aria-label="Add Image"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-image-plus"></use></svg></button>
             <button type="button" data-tool="select" data-needs-doc aria-pressed="true" title="Select Text (V)" aria-label="Select Text"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-mouse-pointer-2"></use></svg></button>
             <button type="button" data-tool="highlight" data-needs-doc aria-pressed="false" title="Highlight (H) — drag across text" aria-label="Highlight"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-highlighter"></use></svg></button>
             <span class="color-swatches" role="group" aria-label="Highlight color">
@@ -150,6 +153,7 @@
     </footer>
 
     <div class="toast" id="toast" role="status" hidden></div>
+    <input type="file" id="edit-image-file" class="visually-hidden" accept="image/png,image/jpeg,image/gif,image/bmp,image/webp" tabindex="-1" aria-hidden="true">
 
     <dialog id="dlg-prompt">
         <form id="dlg-prompt-form" method="dialog">

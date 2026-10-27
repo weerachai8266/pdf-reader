@@ -151,6 +151,36 @@ ipcMain.handle('file:save-many', async (_e, { files, title }) => {
     return { folder, count: files.length };
 });
 
+// Fonts for text typed into a PDF (Edit Text / Add Text). Windows fonts,
+// plus Laksaman (TH Sarabun New's free twin) bundled with the converter.
+const EDIT_FONTS = {
+    tahoma: ['win', 'tahoma.ttf'],
+    'tahoma-bold': ['win', 'tahomabd.ttf'],
+    arial: ['win', 'arial.ttf'],
+    'arial-bold': ['win', 'arialbd.ttf'],
+    times: ['win', 'times.ttf'],
+    'times-bold': ['win', 'timesbd.ttf'],
+    laksaman: ['lo', 'Laksaman.ttf'],
+    'laksaman-bold': ['lo', 'Laksaman-Bold.ttf'],
+};
+
+ipcMain.handle('font:get', async (_e, key) => {
+    const spec = EDIT_FONTS[key];
+    if (!spec) return null;
+    const dirs = spec[0] === 'win'
+        ? [path.join(process.env.WINDIR || 'C:\\Windows', 'Fonts')]
+        : [
+            path.join(process.resourcesPath || '', 'libreoffice', 'share', 'fonts', 'truetype'),
+            path.join(APP_ROOT, 'vendor', 'libreoffice', 'share', 'fonts', 'truetype'),
+        ];
+    for (const dir of dirs) {
+        try {
+            return new Uint8Array(await fs.readFile(path.join(dir, spec[1])));
+        } catch {}
+    }
+    return null;
+});
+
 ipcMain.handle('font:thai', async () => {
     const fontsDir = path.join(process.env.WINDIR || 'C:\\Windows', 'Fonts');
     try {

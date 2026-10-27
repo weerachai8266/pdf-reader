@@ -199,6 +199,13 @@ export async function embedThaiFont(doc) {
     return doc.embedFont(fontBytes, { subset: true });
 }
 
+// Embeds any TrueType font (subset) into doc.
+export async function embedFontBytes(doc, bytes) {
+    await loadFontkit();
+    doc.registerFontkit(self.fontkit);
+    return doc.embedFont(bytes, { subset: true });
+}
+
 export function loadPdfLib() {
     return import('../../node_modules/pdf-lib/dist/pdf-lib.esm.min.js');
 }

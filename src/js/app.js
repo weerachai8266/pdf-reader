@@ -25,6 +25,7 @@ import { CONVERTIBLE, filesToPdfs, exportWord, exportImages, exportText } from '
 import { initSignatures, checkSignatures, hasSignatures } from './signatures.js';
 import { initCertSign, startCertSign } from './certsign.js';
 import { initCompare, compareFiles, clearCompare } from './compare.js';
+import { initEditMode, startEditTool, addImage, undoEdit } from './editmode.js';
 
 const $ = (id) => document.getElementById(id);
 const APP_NAME = 'PDF Reader';
@@ -46,6 +47,7 @@ async function init() {
     initSignatures();
     initCertSign((file) => openFile(file, { force: true }));
     initCompare();
+    initEditMode(scroller);
 
     on('dirty-changed', updateTitle);
     for (const event of ['annots-changed', 'pages-changed', 'source-replaced']) on(event, updateRedactButton);
@@ -311,6 +313,10 @@ const actions = {
     'last-page': () => scrollToIndex(state.pages.length - 1),
     signature: openSignatureDialog,
     'cert-sign': startCertSign,
+    'tool-edit': () => startEditTool('edit'),
+    'tool-addtext': () => startEditTool('addtext'),
+    'add-image': addImage,
+    undo: () => undoEdit().then((done) => done || toast('ไม่มีการแก้ไขข้อความ/รูปให้ย้อนกลับ')),
     compare: compareFiles,
     'show-signatures': () => showPanel('signatures'),
     'show-compare': () => showPanel('compare'),
@@ -349,8 +355,10 @@ function runCommand(name) {
 function bindToolbar() {
     window.host.onMenuCommand(runCommand);
     document.addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-action], [data-tool], [data-color]');
-        if (!btn || btn.disabled || btn.closest('#thumbs')) return;
+        // Buttons only: <body data-tool> carries the current tool and must not
+        // count as a click on a tool button.
+        const btn = e.target.closest('button');
+        if (!btn || !btn.matches('[data-action], [data-tool], [data-color]') || btn.disabled || btn.closest('#thumbs')) return;
         if (btn.dataset.action && actions[btn.dataset.action]) runCommand(btn.dataset.action);
         else if (btn.dataset.tool) setTool(btn.dataset.tool);
         else if (btn.dataset.color) {

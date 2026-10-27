@@ -171,7 +171,7 @@ async function run() {
         fs.writeFileSync(path.join(outDir, 'reopened.png'), (await win.capturePage()).toPNG());
     }
 
-    // SMOKE_ONLY=doctools|convert|digsig skips the slower earlier suites while iterating.
+    // SMOKE_ONLY=doctools|convert|editing|digsig skips the slower earlier suites while iterating.
     if (!process.env.SMOKE_ONLY) {
         await testForms(win, js);
         await testPrint(win, js);
@@ -188,6 +188,10 @@ async function run() {
         setSavePath: (file) => { nextSavePath = file; },
         setFolder: (folder) => { nextFolder = folder; },
         setOpenPaths: (paths) => { nextOpenPaths = paths; },
+    });
+    if (!only || only === 'editing') await require('./editing.js')({
+        win, js, check, waitFor, sleep, outDir, inputPdf,
+        setSavePath: (file) => { nextSavePath = file; },
     });
     if (!only || only === 'digsig') await require('./digsig.js')({
         win, js, check, waitFor, sleep, outDir, inputPdf,
@@ -243,7 +247,8 @@ async function testForms(win, js) {
     const original = fs.readFileSync(formPdf);
 
     win.webContents.send('file:opened', { path: formPdf, name: 'form.pdf', data: new Uint8Array(original) });
-    check('form fields rendered', await waitFor(win, `document.querySelectorAll('.annotationLayer input, .annotationLayer select').length >= 4`));
+    const formShown = await waitFor(win, `document.querySelectorAll('.annotationLayer input, .annotationLayer select').length >= 4`);
+    check('form fields rendered', formShown, formShown ? '' : await js(`JSON.stringify({ file: document.getElementById('file-name').textContent, title: document.title, dialogs: [...document.querySelectorAll('dialog[open]')].map((d) => d.id), toast: document.getElementById('toast').textContent, busy: document.body.classList.contains('is-busy') })`));
     const typeName = (value) => js(`(() => {
         const text = document.querySelector('.textWidgetAnnotation input');
         text.focus(); text.value = ${JSON.stringify(value)};
@@ -307,7 +312,8 @@ async function testForms(win, js) {
 
     // Reopen the filled file; the thumbnail shows the generated appearance.
     win.webContents.send('file:opened', { path: filledPdf, name: 'form-filled.pdf', data: new Uint8Array(fs.readFileSync(filledPdf)) });
-    check('filled form reopens with value', await waitFor(win, `document.querySelector('.textWidgetAnnotation input')?.value === ${JSON.stringify(THAI)}`));
+    const reopened = await waitFor(win, `document.getElementById('file-name').textContent === 'form-filled.pdf' && document.querySelector('.textWidgetAnnotation input')?.value === ${JSON.stringify(THAI)}`);
+    check('filled form reopens with value', reopened, reopened ? '' : await js(`JSON.stringify({ file: document.getElementById('file-name').textContent, title: document.title, dialogs: [...document.querySelectorAll('dialog[open]')].map((d) => d.id) })`));
     await sleep(500);
     check('opening a form does not mark it changed', await js(`!document.title.startsWith('●')`));
     await sleep(1200);

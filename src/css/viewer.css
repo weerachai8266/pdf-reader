@@ -341,3 +341,183 @@
 .is-dropping .drop-overlay {
     display: flex;
 }
+
+/* ---- edit text & images ------------------------------------------------ */
+
+[data-tool='edit'] .annotationLayer,
+[data-tool='addtext'] .annotationLayer {
+    visibility: hidden;
+}
+
+[data-tool='edit'] .textLayer span {
+    cursor: text;
+    user-select: none;
+}
+
+[data-tool='edit'] .textLayer span:hover {
+    outline: 1px solid var(--accent);
+    background: rgb(47 111 222 / 0.08);
+}
+
+[data-tool='addtext'] .page,
+[data-tool='addtext'] .textLayer span {
+    cursor: crosshair;
+    user-select: none;
+}
+
+.edit-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+}
+
+.edit-image {
+    position: absolute;
+    pointer-events: auto;
+    outline: 1px dashed rgb(47 111 222 / 0.7);
+    cursor: move;
+    touch-action: none;
+}
+
+.edit-image:hover,
+.edit-image.is-selected {
+    outline: 2px solid var(--accent);
+    background: rgb(47 111 222 / 0.06);
+}
+
+.edit-image .resize-handle {
+    position: absolute;
+    right: -6px;
+    bottom: -6px;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--accent);
+    border-radius: 2px;
+    background: #fff;
+    cursor: nwse-resize;
+    display: none;
+}
+
+.edit-image.is-selected .resize-handle {
+    display: block;
+}
+
+.edit-image-tools {
+    position: absolute;
+    top: -34px;
+    right: 0;
+    display: none;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+}
+
+.edit-image.is-selected .edit-image-tools {
+    display: flex;
+}
+
+.edit-image-tools button,
+.edit-bar button {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: none;
+    color: var(--text-muted);
+}
+
+.edit-image-tools button:hover,
+.edit-bar button:hover {
+    background: var(--surface-2);
+    color: var(--text);
+}
+
+.edit-image-tools .icon,
+.edit-bar .icon {
+    width: 16px;
+    height: 16px;
+}
+
+/* Hides the line being edited (the real glyphs go away on commit). */
+.edit-cover {
+    position: absolute;
+    z-index: 5;
+    background: #fff;
+}
+
+.edit-box {
+    position: absolute;
+    z-index: 6;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.edit-bar {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-bottom: 4px;
+    padding: 2px 4px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    font-size: var(--fs-xs);
+    white-space: nowrap;
+}
+
+.edit-bar select,
+.edit-bar input[type='number'] {
+    height: 26px;
+    padding: 0 4px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: var(--fs-xs);
+}
+
+.edit-bar input[type='number'] {
+    width: 56px;
+}
+
+.edit-bar input[type='color'] {
+    width: 28px;
+    height: 26px;
+    padding: 1px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+}
+
+.edit-bar button[aria-pressed='true'] {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.edit-bar .edit-ok {
+    color: var(--ok);
+}
+
+.edit-text {
+    padding: 0 2px;
+    border: 1px solid var(--accent);
+    border-radius: 2px;
+    background: rgb(255 255 255 / 0.96);
+    line-height: 1.25;
+    resize: both;
+    outline: none;
+    white-space: pre;
+    overflow: hidden;
+}
