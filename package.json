@@ -1,7 +1,7 @@
 {
   "name": "pdf-reader",
   "productName": "PDF Reader",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "โปรแกรมอ่าน PDF ที่เบา เร็ว รองรับภาษาไทย ไฮไลต์ คอมเมนต์ เซ็น และจัดการหน้าได้ฟรี",
   "author": "PDF Reader",
   "main": "main/main.js",

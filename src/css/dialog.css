@@ -428,3 +428,41 @@ dialog.dialog-print {
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+/* ---- stamps --------------------------------------------------------- */
+
+.stamp-presets {
+    --stamp-ink: var(--ink-red);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 12px 0;
+}
+
+.stamp-presets[data-color='blue'] { --stamp-ink: var(--ink-blue); }
+.stamp-presets[data-color='green'] { --stamp-ink: var(--ink-green); }
+
+.stamp-preset {
+    padding: 6px 4px;
+    border: 3px double var(--stamp-ink);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--stamp-ink);
+    font-size: var(--fs-md);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.stamp-preset:hover {
+    background: var(--surface-2);
+}
+
+.stamp-custom {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.stamp-custom .field {
+    flex: 1;
+}

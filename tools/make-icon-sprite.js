@@ -15,6 +15,8 @@ const ICONS = [
     'rotate-ccw', 'rotate-cw', 'trash-2',
     'pen-tool', 'shield-check', 'shield-alert', 'shield-x', 'git-compare', 'x', 'files',
     'pencil-line', 'type', 'image-plus', 'replace', 'bold', 'check', 'plus', 'file-text',
+    'underline', 'strikethrough', 'shapes', 'square', 'circle', 'minus', 'move-up-right', 'text-cursor-input',
+    'stamp', 'square-dashed-mouse-pointer',
 ];
 
 const root = path.join(__dirname, '..');

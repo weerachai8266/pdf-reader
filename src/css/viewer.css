@@ -130,7 +130,15 @@
 [data-tool='image'] .annotationLayer,
 [data-tool='eraser'] .annotationLayer,
 [data-tool='redact'] .annotationLayer,
-[data-tool='certsign'] .annotationLayer {
+[data-tool='certsign'] .annotationLayer,
+[data-tool='underline'] .annotationLayer,
+[data-tool='strike'] .annotationLayer,
+[data-tool='textbox'] .annotationLayer,
+[data-tool='rect'] .annotationLayer,
+[data-tool='ellipse'] .annotationLayer,
+[data-tool='line'] .annotationLayer,
+[data-tool='arrow'] .annotationLayer,
+[data-tool='areatext'] .annotationLayer {
     visibility: hidden;
 }
 
@@ -145,7 +153,9 @@
 
 .annot-highlight,
 .annot-image,
-.annot-redact {
+.annot-redact,
+.annot-mark,
+.annot-textbox {
     position: absolute;
     transform-origin: 0 100%;
     transform: rotate(var(--angle, 0rad));
@@ -219,6 +229,80 @@
     outline: 2px dashed var(--accent);
 }
 
+/* ---- ink markup (markup.js) ------------------------------------------- */
+
+.ink-red { --ink: var(--ink-red); }
+.ink-blue { --ink: var(--ink-blue); }
+.ink-green { --ink: var(--ink-green); }
+.ink-black { --ink: var(--ink-black); }
+
+/* Underline / strikethrough: the element is the line itself. */
+.annot-mark {
+    background: var(--ink);
+}
+
+.annot-mark.is-selected {
+    outline: 2px dashed var(--accent);
+    outline-offset: 2px;
+}
+
+.annot-shape {
+    position: absolute;
+    overflow: visible;
+    fill: none;
+    pointer-events: none;
+}
+
+.annot-shape .shape-stroke {
+    stroke: var(--ink);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Wide invisible copy of the stroke: the part that takes clicks. */
+.annot-shape .shape-hit {
+    stroke: transparent;
+    pointer-events: stroke;
+    cursor: move;
+}
+
+.annot-shape.is-selected .shape-hit {
+    stroke: rgb(47 111 222 / 0.25);
+}
+
+.annot-shape.is-drawing {
+    opacity: 0.7;
+}
+
+.annot-shape.is-drawing .shape-hit {
+    pointer-events: none;
+}
+
+/* Text box: same font, padding and line height as savemarkup.js draws. */
+.annot-textbox {
+    box-sizing: border-box;
+    border: 1px solid var(--ink);
+    background: #fff;
+    color: var(--ink);
+    font-family: Tahoma, sans-serif;
+    line-height: 1.3;
+    white-space: pre;
+    overflow: hidden;
+    pointer-events: auto;
+    cursor: move;
+    user-select: none;
+    touch-action: none;
+}
+
+.annot-textbox.is-selected {
+    outline: 2px dashed var(--accent);
+    outline-offset: 2px;
+}
+
+[data-tool='eraser'] .annot-layer > .annot-shape .shape-hit {
+    cursor: not-allowed;
+}
+
 /* Marked for redaction, not yet applied: red outline over a dark tint. */
 .annot-redact {
     border: 2px solid var(--danger);
@@ -242,23 +326,31 @@
 [data-tool='redact'] .textLayer span,
 [data-tool='certsign'] .page,
 [data-tool='certsign'] .textLayer,
-[data-tool='certsign'] .textLayer span {
+[data-tool='certsign'] .textLayer span,
+:is([data-tool='rect'], [data-tool='ellipse'], [data-tool='line'], [data-tool='arrow'], [data-tool='areatext']) :is(.page, .textLayer, .textLayer span) {
     cursor: crosshair;
     user-select: none;
 }
 
 [data-tool='note'] .page,
-[data-tool='image'] .page {
+[data-tool='image'] .page,
+[data-tool='textbox'] .page {
     cursor: crosshair;
 }
 
 [data-tool='note'] .textLayer span,
-[data-tool='image'] .textLayer span {
+[data-tool='image'] .textLayer span,
+[data-tool='textbox'] .textLayer span {
     cursor: crosshair;
 }
 
 [data-tool='highlight'] .textLayer ::selection {
     background: var(--hl-yellow);
+}
+
+[data-tool='underline'] .textLayer ::selection,
+[data-tool='strike'] .textLayer ::selection {
+    background: rgb(47 111 222 / 0.25);
 }
 
 /* The eraser has to be able to hit highlights, which normally let clicks

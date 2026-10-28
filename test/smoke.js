@@ -185,7 +185,7 @@ async function run() {
         fs.writeFileSync(path.join(outDir, 'reopened.png'), (await win.capturePage()).toPNG());
     }
 
-    // SMOKE_ONLY=print|doctools|convert|editing|digsig|tabs skips the slower other suites while iterating.
+    // SMOKE_ONLY=print|doctools|convert|editing|markup|digsig|tabs skips the slower other suites while iterating.
     const only = process.env.SMOKE_ONLY;
     if (!only) await testForms(win, js);
     if (!only || only === 'print') await testPrint(win, js);
@@ -204,6 +204,11 @@ async function run() {
     if (!only || only === 'editing') await require('./editing.js')({
         win, js, check, waitFor, sleep, outDir, inputPdf,
         setSavePath: (file) => { nextSavePath = file; },
+    });
+    if (!only || only === 'markup') await require('./markup.js')({
+        win, js, check, waitFor, sleep, outDir, inputPdf,
+        setSavePath: (file) => { nextSavePath = file; },
+        setOpenPaths: (paths) => { nextOpenPaths = paths; },
     });
     if (!only || only === 'digsig') await require('./digsig.js')({
         win, js, check, waitFor, sleep, outDir, inputPdf,

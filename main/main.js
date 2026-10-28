@@ -1,6 +1,6 @@
 'use strict';
 
-const { app, dialog, ipcMain, protocol, net } = require('electron');
+const { app, clipboard, dialog, ipcMain, protocol, net } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
@@ -162,6 +162,9 @@ ipcMain.handle('font:thai', async () => {
         return null;
     }
 });
+
+// Copy Text from Area (the renderer's clipboard API needs window focus).
+ipcMain.handle('clipboard:write', (_e, text) => clipboard.writeText(String(text ?? '')));
 
 // Name, path and unsaved state of a tab's document (tab label, window title,
 // unsaved-changes prompt on close).

@@ -54,13 +54,30 @@
             <button type="button" data-action="add-image" data-needs-doc title="Add Image" aria-label="Add Image"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-image-plus"></use></svg></button>
             <button type="button" data-tool="select" data-needs-doc aria-pressed="true" title="Select Text (V)" aria-label="Select Text"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-mouse-pointer-2"></use></svg></button>
             <button type="button" data-tool="highlight" data-needs-doc aria-pressed="false" title="Highlight (H) — drag across text" aria-label="Highlight"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-highlighter"></use></svg></button>
-            <span class="color-swatches" role="group" aria-label="Highlight color">
+            <button type="button" data-tool="underline" data-needs-doc aria-pressed="false" title="Underline (U) — drag across text" aria-label="Underline"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-underline"></use></svg></button>
+            <button type="button" data-tool="strike" data-needs-doc aria-pressed="false" title="Strikethrough (K) — drag across text" aria-label="Strikethrough"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-strikethrough"></use></svg></button>
+            <span class="color-swatches" data-palette="highlight" role="group" aria-label="Highlight color">
                 <button type="button" class="swatch swatch-yellow" data-color="yellow" data-needs-doc aria-pressed="true" title="Yellow"></button>
                 <button type="button" class="swatch swatch-green" data-color="green" data-needs-doc aria-pressed="false" title="Green"></button>
                 <button type="button" class="swatch swatch-pink" data-color="pink" data-needs-doc aria-pressed="false" title="Pink"></button>
                 <button type="button" class="swatch swatch-blue" data-color="blue" data-needs-doc aria-pressed="false" title="Blue"></button>
             </span>
+            <span class="color-swatches" data-palette="ink" role="group" aria-label="Ink color">
+                <button type="button" class="swatch swatch-ink-red" data-ink="red" data-needs-doc aria-pressed="true" title="Red"></button>
+                <button type="button" class="swatch swatch-ink-blue" data-ink="blue" data-needs-doc aria-pressed="false" title="Blue"></button>
+                <button type="button" class="swatch swatch-ink-green" data-ink="green" data-needs-doc aria-pressed="false" title="Green"></button>
+                <button type="button" class="swatch swatch-ink-black" data-ink="black" data-needs-doc aria-pressed="false" title="Black"></button>
+            </span>
             <button type="button" data-tool="note" data-needs-doc aria-pressed="false" title="Add Note (N) — click on the page" aria-label="Add Note"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-message-square-text"></use></svg></button>
+            <button type="button" data-tool="textbox" data-needs-doc aria-pressed="false" title="Text Box — click on the page" aria-label="Text Box"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-text-cursor-input"></use></svg></button>
+            <button type="button" id="shape-button" class="shape-button" data-needs-doc aria-pressed="false" popovertarget="shape-menu" title="Shapes — rectangle, ellipse, line, arrow" aria-label="Shapes"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-shapes"></use></svg></button>
+            <div class="shape-menu" id="shape-menu" popover role="menu" aria-label="Shapes">
+                <button type="button" role="menuitem" data-tool="rect"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-square"></use></svg>Rectangle</button>
+                <button type="button" role="menuitem" data-tool="ellipse"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-circle"></use></svg>Ellipse</button>
+                <button type="button" role="menuitem" data-tool="line"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-minus"></use></svg>Line</button>
+                <button type="button" role="menuitem" data-tool="arrow"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-move-up-right"></use></svg>Arrow</button>
+            </div>
+            <button type="button" data-action="stamp" data-needs-doc title="Stamp — อนุมัติ, สำเนาถูกต้อง, ตรายาง" aria-label="Stamp"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-stamp"></use></svg></button>
             <button type="button" data-action="signature" data-needs-doc title="Fill &amp; Sign" aria-label="Fill &amp; Sign"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-signature"></use></svg></button>
             <button type="button" data-action="cert-sign" data-needs-doc title="Sign with Certificate (digital signature)" aria-label="Sign with Certificate"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-pen-tool"></use></svg></button>
             <button type="button" data-tool="redact" data-needs-doc aria-pressed="false" title="Mark for Redaction — drag over content to remove" aria-label="Mark for Redaction"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-rectangle-horizontal"></use></svg></button>
@@ -70,6 +87,7 @@
 
         <div class="tool-group">
             <button type="button" data-action="ocr" data-needs-doc title="Recognize Text (OCR) — make scanned pages searchable" aria-label="Recognize Text"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-scan-text"></use></svg></button>
+            <button type="button" data-tool="areatext" data-needs-doc aria-pressed="false" title="Copy Text from Area — drag a box over text or a scan" aria-label="Copy Text from Area"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-square-dashed-mouse-pointer"></use></svg></button>
         </div>
 
         <div class="tool-group tool-group-end">
@@ -613,6 +631,74 @@
             <span class="spacer"></span>
             <button type="button" class="secondary" id="dlg-progress-cancel">Cancel</button>
         </div>
+    </dialog>
+
+    <dialog id="dlg-insert">
+        <form method="dialog">
+            <h2 id="dlg-insert-title">Insert Pages</h2>
+            <p class="dialog-hint">เลือกตำแหน่งที่จะแทรกหน้า <span id="insert-total"></span></p>
+            <div class="field-row">
+                <label class="field"><span>ตำแหน่ง</span>
+                    <select id="insert-where">
+                        <option value="after">After</option>
+                        <option value="before">Before</option>
+                    </select>
+                </label>
+                <label class="field"><span>หน้าที่</span><input id="insert-page" type="number" min="1" value="1"></label>
+                <label class="field" id="insert-count-field"><span>จำนวนหน้าว่าง</span><input id="insert-count" type="number" min="1" max="100" value="1"></label>
+            </div>
+            <p class="dialog-error" data-error hidden></p>
+            <div class="dialog-actions">
+                <span class="spacer"></span>
+                <button value="cancel" class="secondary" formnovalidate>Cancel</button>
+                <button value="ok" class="primary">Insert</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="dlg-stamp" class="dialog-wide">
+        <form method="dialog">
+            <h2>Stamp</h2>
+            <p class="dialog-hint">เลือกตราประทับ แล้วคลิกตำแหน่งบนหน้า (ลากเพื่อย้าย ลากมุมเพื่อปรับขนาด)</p>
+            <div class="sig-tools">
+                <label>สี
+                    <select id="stamp-color">
+                        <option value="red">Red</option>
+                        <option value="blue">Blue</option>
+                        <option value="green">Green</option>
+                    </select>
+                </label>
+                <label class="option-row"><input type="checkbox" id="stamp-date" checked> ใส่วันที่วันนี้</label>
+            </div>
+            <div class="stamp-presets" id="stamp-presets" data-color="red">
+                <button type="button" class="stamp-preset" data-stamp="อนุมัติ">อนุมัติ</button>
+                <button type="button" class="stamp-preset" data-stamp="ไม่อนุมัติ">ไม่อนุมัติ</button>
+                <button type="button" class="stamp-preset" data-stamp="สำเนาถูกต้อง">สำเนาถูกต้อง</button>
+                <button type="button" class="stamp-preset" data-stamp="ได้รับแล้ว">ได้รับแล้ว</button>
+                <button type="button" class="stamp-preset" data-stamp="ตรวจแล้ว">ตรวจแล้ว</button>
+                <button type="button" class="stamp-preset" data-stamp="ด่วน">ด่วน</button>
+                <button type="button" class="stamp-preset" data-stamp="ด่วนที่สุด">ด่วนที่สุด</button>
+                <button type="button" class="stamp-preset" data-stamp="ลับ">ลับ</button>
+                <button type="button" class="stamp-preset" data-stamp="ลับมาก">ลับมาก</button>
+                <button type="button" class="stamp-preset" data-stamp="ยกเลิก">ยกเลิก</button>
+                <button type="button" class="stamp-preset" data-stamp="ร่าง">ร่าง</button>
+                <button type="button" class="stamp-preset" data-stamp="APPROVED">APPROVED</button>
+            </div>
+            <div class="stamp-custom">
+                <label class="field"><span>ข้อความเอง</span><input id="stamp-custom" type="text" autocomplete="off" placeholder="เช่น ทราบ / ดำเนินการ"></label>
+                <button type="button" id="stamp-custom-use" class="secondary">Use Text</button>
+                <label class="file-button secondary">Use Image…
+                    <input type="file" id="stamp-image" accept="image/png,image/jpeg">
+                </label>
+            </div>
+            <h3>ตรายางที่เคยใช้</h3>
+            <p class="empty-hint" id="stamp-saved-empty">ยังไม่มีรูปตรายาง กด "Use Image…" เพื่อเลือกรูป (แนะนำ PNG พื้นใส)</p>
+            <div class="sig-saved" id="stamp-saved"></div>
+            <div class="dialog-actions">
+                <span class="spacer"></span>
+                <button value="cancel" class="secondary">Cancel</button>
+            </div>
+        </form>
     </dialog>
 
     <dialog id="dlg-signature" class="dialog-wide">

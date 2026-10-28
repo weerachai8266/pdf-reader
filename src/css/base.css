@@ -29,6 +29,12 @@
     --hl-pink: rgb(255 140 190 / 0.4);
     --hl-blue: rgb(128 200 255 / 0.4);
 
+    /* Ink markup; keep in step with INK_COLORS in js/config.js. */
+    --ink-red: rgb(217 26 26);
+    --ink-blue: rgb(26 77 217);
+    --ink-green: rgb(26 140 51);
+    --ink-black: rgb(26 26 26);
+
     --toolbar-h: 40px;
     --statusbar-h: 24px;
     --tool-btn: 30px;
@@ -257,8 +263,65 @@ kbd {
 .toolbar .swatch-blue,
 .toolbar .swatch-blue:hover:not(:disabled) { background: #80c8ff; }
 
+.toolbar .swatch-ink-red,
+.toolbar .swatch-ink-red:hover:not(:disabled) { background: var(--ink-red); }
+.toolbar .swatch-ink-blue,
+.toolbar .swatch-ink-blue:hover:not(:disabled) { background: var(--ink-blue); }
+.toolbar .swatch-ink-green,
+.toolbar .swatch-ink-green:hover:not(:disabled) { background: var(--ink-green); }
+.toolbar .swatch-ink-black,
+.toolbar .swatch-ink-black:hover:not(:disabled) { background: var(--ink-black); }
+
 .toolbar .swatch:hover:not(:disabled) {
     filter: brightness(0.92);
+}
+
+/* One palette at a time: ink colours for underline, strikethrough, shapes
+   and text boxes (or a selected one of those), highlight colours otherwise. */
+.color-swatches[data-palette='ink'],
+:is([data-tool='underline'], [data-tool='strike'], [data-tool='textbox'], [data-tool='rect'],
+    [data-tool='ellipse'], [data-tool='line'], [data-tool='arrow'], .ink-selected) .color-swatches[data-palette='highlight'] {
+    display: none;
+}
+
+:is([data-tool='underline'], [data-tool='strike'], [data-tool='textbox'], [data-tool='rect'],
+    [data-tool='ellipse'], [data-tool='line'], [data-tool='arrow'], .ink-selected) .color-swatches[data-palette='ink'] {
+    display: inline-flex;
+}
+
+/* ---- shapes menu ------------------------------------------------------ */
+
+.shape-button {
+    anchor-name: --shape-button;
+}
+
+.shape-menu {
+    position: fixed;
+    position-anchor: --shape-button;
+    top: anchor(bottom);
+    left: anchor(left);
+    margin: 4px 0 0;
+    padding: 4px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--shadow);
+}
+
+.shape-menu:popover-open {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.toolbar .shape-menu button {
+    justify-content: flex-start;
+    gap: 8px;
+    width: 100%;
+    padding: 0 12px 0 8px;
+    font-size: var(--fs-sm);
+    color: var(--text);
 }
 
 /* ---- layout ----------------------------------------------------------- */

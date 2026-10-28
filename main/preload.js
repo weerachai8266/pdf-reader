@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('host', {
     openTab: (file) => ipcRenderer.invoke('tabs:open', file),
     thaiFont: () => ipcRenderer.invoke('font:thai'),
     editFont: (key) => ipcRenderer.invoke('font:get', key),
+    copyText: (text) => ipcRenderer.invoke('clipboard:write', text),
     onFileOpened: (cb) => ipcRenderer.on('file:opened', (_e, file) => cb(file)),
     onUpdateStatus: (cb) => ipcRenderer.on('update:status', (_e, status) => cb(status)),
     installUpdate: () => ipcRenderer.invoke('update:install'),

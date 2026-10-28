@@ -7,6 +7,8 @@
 import { state } from './docstate.js';
 import { HIGHLIGHT_COLORS, HIGHLIGHT_OPACITY, NOTE_ICON_PX } from './config.js';
 import { optimize } from './qpdf.js';
+import { quadFrame } from './annotgeom.js';
+import { MARKUP_TYPES, drawMarkup } from './savemarkup.js';
 
 export const ENCRYPTED_HINT = 'ไฟล์นี้มีรหัสผ่าน ให้ใช้ Document → Remove Security ก่อน';
 
@@ -97,6 +99,7 @@ export async function buildPdf() {
     for (let i = base.getPageCount() - 1; i >= 0; i--) base.removePage(i);
 
     const imageCache = new Map();
+    const fontFor = markupFonts(lib, base);
     for (const entry of state.pages) {
         const page = entry.srcId === baseId ? basePages[entry.index] : foreign.get(`${entry.srcId}:${entry.index}`);
         base.addPage(page);
@@ -107,6 +110,7 @@ export async function buildPdf() {
             if (annot.type === 'highlight') drawHighlight(lib, page, annot);
             else if (annot.type === 'note') addNote(lib, base, page, annot);
             else if (annot.type === 'image') await drawImage(lib, base, page, annot, imageCache);
+            else if (MARKUP_TYPES.has(annot.type)) await drawMarkup(lib, page, annot, fontFor);
         }
     }
 
@@ -222,16 +226,22 @@ function loadFontkit() {
     return fontkitPromise;
 }
 
-function quadBox(quad) {
-    const [x, y] = quad.bl;
-    return {
-        x,
-        y,
-        width: Math.hypot(quad.br[0] - x, quad.br[1] - y),
-        height: Math.hypot(quad.tl[0] - x, quad.tl[1] - y),
-        angle: (Math.atan2(quad.br[1] - y, quad.br[0] - x) * 180) / Math.PI,
+// Text box fonts, embedded on first use: Tahoma (what the screen shows),
+// or Helvetica for Latin text on a PC without Tahoma.
+function markupFonts(lib, doc) {
+    let tahoma;
+    let helvetica;
+    return async (text) => {
+        tahoma ??= embedThaiFont(doc);
+        const font = await tahoma;
+        if (font) return font;
+        if (NON_LATIN1.test(text)) throw new Error('ไม่พบฟอนต์ Tahoma ในเครื่อง จึงบันทึกกล่องข้อความภาษาไทยไม่ได้');
+        helvetica ??= doc.embedFont(lib.StandardFonts.Helvetica);
+        return helvetica;
     };
 }
+
+const quadBox = quadFrame;
 
 // Highlights are flattened into the page as multiply-blended rectangles,
 // which every PDF viewer and printer renders identically.

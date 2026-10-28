@@ -79,7 +79,20 @@ function buildMenu(getWindow, { getContents, tabs, checkForUpdates }) {
             submenu: [
                 item('&Select Text', 'tool-select', 'V'),
                 item('&Highlight', 'tool-highlight', 'H'),
+                item('&Underline', 'tool-underline', 'U'),
+                item('Stri&kethrough', 'tool-strike', 'K'),
                 item('Add &Note', 'tool-note', 'N'),
+                item('Text &Box', 'tool-textbox'),
+                {
+                    label: 'Sha&pes',
+                    submenu: [
+                        item('&Rectangle', 'tool-rect'),
+                        item('&Ellipse', 'tool-ellipse'),
+                        item('&Line', 'tool-line'),
+                        item('&Arrow', 'tool-arrow'),
+                    ],
+                },
+                item('St&amp…', 'stamp'),
                 item('&Fill & Sign…', 'signature'),
                 item('Sign with &Certificate…', 'cert-sign'),
                 { type: 'separator' },
@@ -89,12 +102,20 @@ function buildMenu(getWindow, { getContents, tabs, checkForUpdates }) {
                 item('&Eraser', 'tool-eraser'),
                 { type: 'separator' },
                 item('&Recognize Text (OCR)…', 'ocr'),
+                item('C&opy Text from Area', 'tool-areatext'),
                 item('Com&pare Files…', 'compare'),
             ],
         },
         {
             label: '&Document',
             submenu: [
+                {
+                    label: '&Insert Pages',
+                    submenu: [
+                        item('From &File…', 'insert-file'),
+                        item('&Blank Page…', 'insert-blank'),
+                    ],
+                },
                 item('E&xtract Pages…', 'extract'),
                 item('&Split Document…', 'split'),
                 { type: 'separator' },
@@ -105,6 +126,7 @@ function buildMenu(getWindow, { getContents, tabs, checkForUpdates }) {
                 item('&Mark for Redaction', 'tool-redact'),
                 item('&Apply Redactions…', 'apply-redactions'),
                 { type: 'separator' },
+                item('&Flatten Form && Comments…', 'flatten'),
                 item('&Reduce File Size…', 'compress'),
                 item('&Protect with Password…', 'protect'),
                 item('Remove Se&curity…', 'remove-security'),

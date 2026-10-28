@@ -8,3 +8,7 @@ export function emit(name, detail) {
 export function on(name, handler) {
     target.addEventListener(name, (e) => handler(e.detail));
 }
+
+export function once(name, handler) {
+    target.addEventListener(name, (e) => handler(e.detail), { once: true });
+}

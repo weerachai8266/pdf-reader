@@ -5,7 +5,7 @@ import { on } from './bus.js';
 import { loadPdf, pdfjsLib, passwordOf } from './pdfjs.js';
 import { state, resetDocument, addSource, hasDocument, setDirty, pagesChanged } from './docstate.js';
 import { initViewer, rebuild, clearViewer, setZoom, zoomIn, zoomOut, scrollToIndex, currentPageIndex } from './viewer.js';
-import { initAnnotate, setTool, setHighlightColor } from './annotate.js';
+import { initAnnotate, setTool, setHighlightColor, setInkColor } from './annotate.js';
 import { initSearch, focusSearch, resetSearch } from './search.js';
 import { initThumbs, resetThumbs } from './thumbs.js';
 import { initSignature, openSignatureDialog } from './signature.js';
@@ -27,6 +27,11 @@ import { initCertSign, startCertSign } from './certsign.js';
 import { initPrintDialog, printWithDialog } from './printdialog.js';
 import { initCompare, compareFiles, clearCompare } from './compare.js';
 import { initEditMode, startEditTool, addImage, undoEdit } from './editmode.js';
+import { initStamps, openStampDialog } from './stamps.js';
+import { insertFromFile, insertBlank } from './insertpages.js';
+import { flattenDocument } from './flatten.js';
+import { initAreaText } from './areatext.js';
+import { BOX_SHAPES, LINE_SHAPES } from './markup.js';
 
 const $ = (id) => document.getElementById(id);
 const APP_NAME = 'PDF Reader';
@@ -50,6 +55,8 @@ async function init() {
     initCompare();
     initPrintDialog();
     initEditMode(scroller);
+    initStamps();
+    initAreaText();
 
     on('dirty-changed', updateTitle);
     for (const event of ['annots-changed', 'pages-changed', 'source-replaced']) on(event, updateRedactButton);
@@ -69,6 +76,7 @@ async function init() {
     });
     on('tool-changed', (tool) => {
         document.querySelectorAll('[data-tool]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tool === tool)));
+        $('shape-button').setAttribute('aria-pressed', String(BOX_SHAPES.has(tool) || LINE_SHAPES.has(tool)));
     });
 
     $('app-version').textContent = `v${await window.host.version()}`;
@@ -95,7 +103,8 @@ async function confirmDiscard() {
 let openSeq = 0;
 
 // password: known password to try first (after Protect re-opens the file).
-async function openFile(file, { password = null, force = false } = {}) {
+// announce: false skips the form / scanned-page hint (the caller toasts).
+async function openFile(file, { password = null, force = false, announce = true } = {}) {
     if (!force && !(await confirmDiscard())) return;
     const seq = ++openSeq;
     setBusy(true);
@@ -120,7 +129,7 @@ async function openFile(file, { password = null, force = false } = {}) {
         await rebuild();
         scrollToIndex(0);
         updateUi();
-        announceDocument(pdf);
+        if (announce) announceDocument(pdf);
         checkSignatures().catch((err) => console.warn('signature check failed', err));
     } catch (err) {
         if (seq === openSeq) reportLoadError(err, file.name);
@@ -357,6 +366,21 @@ const actions = {
     'tool-highlight': () => setTool('highlight'),
     'tool-note': () => setTool('note'),
     'tool-eraser': () => setTool('eraser'),
+    'tool-underline': () => setTool('underline'),
+    'tool-strike': () => setTool('strike'),
+    'tool-textbox': () => setTool('textbox'),
+    'tool-rect': () => setTool('rect'),
+    'tool-ellipse': () => setTool('ellipse'),
+    'tool-line': () => setTool('line'),
+    'tool-arrow': () => setTool('arrow'),
+    'tool-areatext': () => setTool('areatext'),
+    stamp: openStampDialog,
+    'insert-file': insertFromFile,
+    'insert-blank': insertBlank,
+    flatten: () => flattenDocument(async (file) => {
+        await openFile(file, { force: true, announce: false });
+        setDirty(true);
+    }),
     'toggle-sidebar': () => document.body.classList.toggle('sidebar-hidden'),
     'show-thumbs': () => showPanel('thumbs'),
     'show-search': () => {
@@ -378,12 +402,18 @@ function bindToolbar() {
         // Buttons only: <body data-tool> carries the current tool and must not
         // count as a click on a tool button.
         const btn = e.target.closest('button');
-        if (!btn || !btn.matches('[data-action], [data-tool], [data-color]') || btn.disabled || btn.closest('#thumbs')) return;
+        if (!btn || !btn.matches('[data-action], [data-tool], [data-color], [data-ink]') || btn.disabled || btn.closest('#thumbs')) return;
         if (btn.dataset.action && actions[btn.dataset.action]) runCommand(btn.dataset.action);
-        else if (btn.dataset.tool) setTool(btn.dataset.tool);
-        else if (btn.dataset.color) {
+        else if (btn.dataset.tool) {
+            if (!hasDocument()) return;
+            setTool(btn.dataset.tool);
+            if (btn.closest('#shape-menu')) $('shape-menu').hidePopover();
+        } else if (btn.dataset.color) {
             document.querySelectorAll('[data-color]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
             setHighlightColor(btn.dataset.color);
+        } else if (btn.dataset.ink) {
+            document.querySelectorAll('[data-ink]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+            setInkColor(btn.dataset.ink);
         }
     });
     // Keep the text selection alive when a toolbar button is pressed, so
@@ -443,6 +473,10 @@ function bindKeyboard(scroller) {
                 setTool('highlight');
             } else if (e.key === 'n') {
                 setTool('note');
+            } else if (e.key === 'u') {
+                setTool('underline');
+            } else if (e.key === 'k') {
+                setTool('strike');
             } else if (e.key === 'v') {
                 setTool('select');
             }

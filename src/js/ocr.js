@@ -58,12 +58,14 @@ const SPACE_GAP_RATIO = 0.3;
 // tone marks), so laying them out one by one would put spaces inside Thai
 // words. Instead merge each line into runs of touching words; a real gap
 // starts a new run. Each run becomes one stretched string in the text layer.
-function wordsFrom(data, viewport) {
-    const runs = [];
+// Returns one array of runs per line, in reading order.
+function lineRuns(data) {
+    const lines = [];
     for (const block of data.blocks || []) {
         for (const para of block.paragraphs) {
             for (const line of para.lines) {
                 const lineH = line.bbox.y1 - line.bbox.y0;
+                const runs = [];
                 let run = null;
                 for (const word of line.words) {
                     const text = word.text.trim();
@@ -77,15 +79,44 @@ function wordsFrom(data, viewport) {
                         runs.push(run);
                     }
                 }
+                if (runs.length) lines.push(runs);
             }
         }
     }
-    return runs.map(({ text, x0, x1, y0, y1 }) => ({
+    return lines;
+}
+
+function wordsFrom(data, viewport) {
+    return lineRuns(data).flat().map(({ text, x0, x1, y0, y1 }) => ({
         text,
         bl: viewport.convertToPdfPoint(x0, y1),
         br: viewport.convertToPdfPoint(x1, y1),
         tl: viewport.convertToPdfPoint(x0, y0),
     }));
+}
+
+// Plain text of the part of a page inside rect ([x1, y1, x2, y2] in PDF
+// user space), one line per text line.
+export async function recognizeArea(entry, [x1, y1, x2, y2]) {
+    const { canvas, viewport } = await renderForOcr(entry);
+    const corners = [[x1, y1], [x2, y2]].map((p) => viewport.convertToViewportPoint(...p));
+    const pad = 12;
+    const left = Math.max(0, Math.floor(Math.min(corners[0][0], corners[1][0])) - pad);
+    const top = Math.max(0, Math.floor(Math.min(corners[0][1], corners[1][1])) - pad);
+    const right = Math.min(canvas.width, Math.ceil(Math.max(corners[0][0], corners[1][0])) + pad);
+    const bottom = Math.min(canvas.height, Math.ceil(Math.max(corners[0][1], corners[1][1])) + pad);
+    const crop = document.createElement('canvas');
+    crop.width = Math.max(1, right - left);
+    crop.height = Math.max(1, bottom - top);
+    crop.getContext('2d').drawImage(canvas, left, top, crop.width, crop.height, 0, 0, crop.width, crop.height);
+    canvas.width = 0;
+    const scheduler = await createScheduler(1);
+    try {
+        const { data } = await scheduler.addJob('recognize', crop, {}, { blocks: true, text: false });
+        return lineRuns(data).map((runs) => runs.map((r) => r.text).join(' ')).join('\n');
+    } finally {
+        await scheduler.terminate();
+    }
 }
 
 // entries: page entries to recognise. Returns Map(entry.key -> words).

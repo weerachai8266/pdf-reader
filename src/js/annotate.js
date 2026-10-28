@@ -1,11 +1,10 @@
-// Annotation tools: highlight, sticky note, signature/image, redaction
-// marks, eraser.
+// Annotation tools: highlight, underline, strikethrough, sticky note,
+// signature/image/stamp, shapes, text boxes, redaction marks, eraser, and
+// the area drag used by Copy Text from Area and certificate signing.
 //
-// Each annotation's geometry is a "quad" of three PDF-space points taken
-// from the on-screen box it was created in: bottom-left, bottom-right and
-// top-left as the user saw them. Mapping those back through any viewport
-// gives position, size and on-screen angle, so annotations survive zooming
-// and page rotation, and save.js can draw them upright.
+// Geometry is kept in PDF space (see annotgeom.js), so annotations survive
+// zooming and page rotation. Ink markup (underline, shapes, text boxes) is
+// drawn and created by markup.js.
 
 import { on, emit } from './bus.js';
 import { addAnnot, annotsFor, removeAnnot, updateAnnot } from './docstate.js';
@@ -13,10 +12,18 @@ import { getView, allViews } from './viewer.js';
 import { HIGHLIGHT_COLORS, SIGNATURE_DEFAULT_WIDTH_PT } from './config.js';
 import { promptText } from './dialog.js';
 import { icon } from './icons.js';
+import { quadFromViewRect, quadToView, quadFromBox, placeBox, pointInPage } from './annotgeom.js';
+import {
+    TEXT_MARKUP, BOX_SHAPES, LINE_SHAPES, INK_TYPES, drawMarkup, startLineDrag, addBoxShape,
+    createTextbox, editTextbox, getInkColor, setInkColorValue,
+} from './markup.js';
+
+// Tools that drag out a rectangle on the page.
+const BOX_TOOLS = new Set(['redact', 'certsign', 'areatext', ...BOX_SHAPES]);
 
 let tool = 'select';
 let highlightColor = 'yellow';
-let pendingImage = null; // { dataUrl, aspect } waiting to be placed
+let pendingImage = null; // { dataUrl, aspect, widthPt } waiting to be placed
 let selected = null; // { key, id }
 
 export function initAnnotate(scroller) {
@@ -27,7 +34,8 @@ export function initAnnotate(scroller) {
     });
     scroller.addEventListener('mouseup', onMouseUp);
     scroller.addEventListener('click', onClick);
-    scroller.addEventListener('pointerdown', startRedactMark);
+    scroller.addEventListener('pointerdown', onPointerDown);
+    scroller.addEventListener('dblclick', onDoubleClick);
     document.addEventListener('keydown', onKeyDown);
 }
 
@@ -45,49 +53,23 @@ export function getTool() {
 export function setHighlightColor(color) {
     highlightColor = color;
     // Applying a colour to an existing text selection is the fastest workflow.
-    if (!createHighlightFromSelection()) setTool('highlight');
+    if (!createTextMarkup('highlight')) setTool('highlight');
     emit('highlight-color', color);
 }
 
-export function placeImage(dataUrl, aspect) {
-    pendingImage = { dataUrl, aspect };
+// Ink colour (underline, strikethrough, shapes, text boxes): recolours the
+// selected ink annotation, or marks the current text selection.
+export function setInkColor(color) {
+    setInkColorValue(color);
+    const annot = selected && annotsFor(selected.key).find((a) => a.id === selected.id);
+    if (annot && INK_TYPES.has(annot.type)) updateAnnot(selected.key, selected.id, { color });
+    else if (tool === 'underline' || tool === 'strike') createTextMarkup(tool);
+}
+
+// widthPt: placed width on the page (signatures use the default).
+export function placeImage(dataUrl, aspect, widthPt = SIGNATURE_DEFAULT_WIDTH_PT) {
+    pendingImage = { dataUrl, aspect, widthPt };
     setTool('image');
-}
-
-// ---- geometry ---------------------------------------------------------
-
-function quadFromViewRect(viewport, left, top, right, bottom) {
-    return {
-        bl: viewport.convertToPdfPoint(left, bottom),
-        br: viewport.convertToPdfPoint(right, bottom),
-        tl: viewport.convertToPdfPoint(left, top),
-    };
-}
-
-function quadToView(viewport, quad) {
-    const [blx, bly] = viewport.convertToViewportPoint(...quad.bl);
-    const [brx, bry] = viewport.convertToViewportPoint(...quad.br);
-    const [tlx, tly] = viewport.convertToViewportPoint(...quad.tl);
-    return {
-        x: blx,
-        y: bly,
-        w: Math.hypot(brx - blx, bry - bly),
-        h: Math.hypot(tlx - blx, tly - bly),
-        angle: Math.atan2(bry - bly, brx - blx),
-    };
-}
-
-function placeBox(el, box) {
-    el.style.left = `${box.x}px`;
-    el.style.top = `${box.y - box.h}px`;
-    el.style.width = `${box.w}px`;
-    el.style.height = `${box.h}px`;
-    el.style.setProperty('--angle', `${box.angle}rad`);
-}
-
-function pointInPage(view, clientX, clientY) {
-    const r = view.div.getBoundingClientRect();
-    return { x: clientX - r.left, y: clientY - r.top, rect: r };
 }
 
 // ---- drawing ----------------------------------------------------------
@@ -136,6 +118,9 @@ function drawAnnots(view) {
             el.append(img, handle);
             el.addEventListener('pointerdown', (e) => startDrag(e, view, a));
             layer.append(el);
+        } else {
+            const els = drawMarkup(view, a, select);
+            if (els) layer.append(...els);
         }
     }
     if (selected && selected.key === view.entry.key) markSelected();
@@ -151,11 +136,15 @@ function markSelected() {
 function select(key, id) {
     selected = key ? { key, id } : null;
     markSelected();
+    // Shows the ink swatches so the selection can be recoloured.
+    const annot = key && annotsFor(key).find((a) => a.id === id);
+    document.body.classList.toggle('ink-selected', !!annot && INK_TYPES.has(annot.type));
 }
 
-// ---- highlight --------------------------------------------------------
+// ---- highlight, underline, strikethrough ---------------------------------
 
-function createHighlightFromSelection() {
+// Marks the current text selection; false when nothing is selected.
+function createTextMarkup(type) {
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed || !sel.rangeCount) return false;
     const rects = [];
@@ -177,7 +166,8 @@ function createHighlightFromSelection() {
     if (!byPage.size) return false;
     for (const [view, list] of byPage) {
         const quads = mergeLineRects(list).map((r) => quadFromViewRect(view.viewport, r.left, r.top, r.right, r.bottom));
-        addAnnot(view.entry.key, { type: 'highlight', color: highlightColor, quads });
+        const color = type === 'highlight' ? highlightColor : getInkColor();
+        addAnnot(view.entry.key, { type, color, quads });
     }
     sel.removeAllRanges();
     return true;
@@ -202,16 +192,21 @@ function mergeLineRects(rects) {
     return out;
 }
 
-// ---- redaction marks -----------------------------------------------------
+// ---- area drags -----------------------------------------------------------
 
-// Drag a rectangle on the page; it becomes a redaction mark that
-// redact.js turns into real removal.
-// The same drag picks the area of a certificate signature (tool
-// 'certsign'), which certsign.js handles.
-function startRedactMark(e) {
-    if ((tool !== 'redact' && tool !== 'certsign') || e.button !== 0) return;
+function onPointerDown(e) {
+    if (e.button !== 0) return;
     const view = viewFromEvent(e);
     if (!view || !view.viewport) return;
+    if (BOX_TOOLS.has(tool)) startAreaDrag(e, view);
+    else if (LINE_SHAPES.has(tool)) startLineDrag(e, view, tool);
+}
+
+// Drag a rectangle on the page. It becomes a redaction mark (redact.js
+// turns it into real removal), a rectangle or ellipse, the area of a
+// certificate signature (certsign.js) or of Copy Text from Area
+// (areatext.js).
+function startAreaDrag(e, view) {
     e.preventDefault();
     const start = pointInPage(view, e.clientX, e.clientY);
     const box = document.createElement('div');
@@ -236,6 +231,8 @@ function startRedactMark(e) {
         if (!rect || rect.right - rect.left < 3 || rect.bottom - rect.top < 3) return;
         const quad = quadFromViewRect(view.viewport, rect.left, rect.top, rect.right, rect.bottom);
         if (tool === 'certsign') emit('cert-sign-area', { entry: view.entry, quad });
+        else if (tool === 'areatext') emit('area-text', { entry: view.entry, quad });
+        else if (BOX_SHAPES.has(tool)) addBoxShape(view, tool, quad);
         else addAnnot(view.entry.key, { type: 'redact', quad });
     };
     target.addEventListener('pointermove', move);
@@ -245,7 +242,7 @@ function startRedactMark(e) {
 // ---- events -----------------------------------------------------------
 
 function onMouseUp() {
-    if (tool === 'highlight') createHighlightFromSelection();
+    if (TEXT_MARKUP.has(tool)) createTextMarkup(tool);
 }
 
 function viewFromEvent(e) {
@@ -279,8 +276,12 @@ async function onClick(e) {
         const text = await promptText({ title: 'เพิ่มโน้ต', label: 'ข้อความ', multiline: true });
         if (text) addAnnot(key, { type: 'note', at: view.viewport.convertToPdfPoint(x, y), text });
         setTool('select');
+    } else if (tool === 'textbox') {
+        const annot = await createTextbox(view, x, y);
+        setTool('select');
+        if (annot) select(key, annot.id);
     } else if (tool === 'image' && pendingImage) {
-        const w = SIGNATURE_DEFAULT_WIDTH_PT * view.viewport.scale;
+        const w = pendingImage.widthPt * view.viewport.scale;
         const h = w / pendingImage.aspect;
         const quad = quadFromViewRect(view.viewport, x - w / 2, y - h / 2, x + w / 2, y + h / 2);
         const annot = addAnnot(key, { type: 'image', dataUrl: pendingImage.dataUrl, quad });
@@ -298,11 +299,17 @@ async function editNote(key, id) {
     else updateAnnot(key, id, { text });
 }
 
+function onDoubleClick(e) {
+    const el = e.target.closest('.annot-textbox');
+    const view = el && viewFromEvent(e);
+    if (view && tool === 'select') editTextbox(view.entry.key, el.dataset.id);
+}
+
 function onKeyDown(e) {
     if (e.target.closest('input, textarea, dialog')) return;
     if ((e.key === 'Delete' || e.key === 'Backspace') && selected) {
         removeAnnot(selected.key, selected.id);
-        selected = null;
+        select(null);
     } else if (e.key === 'Escape') {
         select(null);
         setTool('select');
@@ -310,18 +317,6 @@ function onKeyDown(e) {
 }
 
 // ---- move / resize images ----------------------------------------------
-
-// Inverse of quadToView: a view box (bottom-left anchor, size, angle) back
-// to PDF-space corners.
-function quadFromBox(viewport, box) {
-    const cos = Math.cos(box.angle);
-    const sin = Math.sin(box.angle);
-    return {
-        bl: viewport.convertToPdfPoint(box.x, box.y),
-        br: viewport.convertToPdfPoint(box.x + box.w * cos, box.y + box.w * sin),
-        tl: viewport.convertToPdfPoint(box.x + box.h * sin, box.y - box.h * cos),
-    };
-}
 
 function startDrag(e, view, annot) {
     if (tool === 'eraser' || e.button !== 0) return;
