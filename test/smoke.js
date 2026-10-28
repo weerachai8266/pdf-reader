@@ -33,11 +33,19 @@ dialog.showOpenDialog = async () => {
     return { canceled: false, filePaths };
 };
 
+// Unsaved-changes prompts (closing a tab) answer with this button index.
+let nextMessageBoxChoice = 1;
+dialog.showMessageBoxSync = () => nextMessageBoxChoice;
+
 // Printing is redirected to a PDF file so the test can inspect the job
 // without a printer or the Windows print dialog.
 const printOut = path.join(outDir, 'printed.pdf');
 let lastPrintOptions = null;
 app.on('web-contents-created', (_e, wc) => {
+    wc.on('render-process-gone', (_ev, d) => console.log('renderer gone', d));
+    wc.on('console-message', (e) => {
+        if (e.level === 'error' || e.level === 'warning') console.log(`[renderer ${e.level}] ${e.message}`);
+    });
     wc.print = (options, callback) => {
         lastPrintOptions = options;
         wc.printToPDF({ margins: { marginType: 'none' }, pageSize: 'A4' }).then((buf) => {
@@ -81,17 +89,21 @@ async function waitFor(win, expr, timeout = 15000) {
 
 async function run() {
     await makeThaiPdf();
-    let win;
-    for (let t = 0; t < 50 && !win; t++) {
-        win = BrowserWindow.getAllWindows().find((w) => w.webContents.getURL().startsWith('app://'));
-        await sleep(100);
-    }
+    const tabs = require('../main/tabs.js');
+    for (let t = 0; t < 50 && !(tabs.getWindow() && tabs.activeContents()); t++) await sleep(100);
+    // The document lives in the active tab's view, not in the window's own
+    // page (that is the tab strip), so tests talk to whichever tab is active.
+    const bw = tabs.getWindow();
+    const win = {
+        get webContents() {
+            return tabs.activeContents();
+        },
+        capturePage: (...args) => tabs.activeContents().capturePage(...args),
+        on: (...args) => bw.on(...args),
+        removeAllListeners: (...args) => bw.removeAllListeners(...args),
+    };
     const js = (code) => win.webContents.executeJavaScript(code);
     win.on('closed', () => console.log('main window closed'));
-    win.webContents.on('render-process-gone', (_e, d) => console.log('renderer gone', d));
-    win.webContents.on('console-message', (e) => {
-        if (e.level === 'error' || e.level === 'warning') console.log(`[renderer ${e.level}] ${e.message}`);
-    });
     await waitFor(win, `document.getElementById('app-version').textContent !== ''`);
     win.webContents.send('file:opened', { path: inputPdf, name: 'thai.pdf', data: new Uint8Array(fs.readFileSync(inputPdf)) });
 
@@ -173,7 +185,7 @@ async function run() {
         fs.writeFileSync(path.join(outDir, 'reopened.png'), (await win.capturePage()).toPNG());
     }
 
-    // SMOKE_ONLY=print|doctools|convert|editing|digsig skips the slower other suites while iterating.
+    // SMOKE_ONLY=print|doctools|convert|editing|digsig|tabs skips the slower other suites while iterating.
     const only = process.env.SMOKE_ONLY;
     if (!only) await testForms(win, js);
     if (!only || only === 'print') await testPrint(win, js);
@@ -197,6 +209,11 @@ async function run() {
         win, js, check, waitFor, sleep, outDir, inputPdf,
         setSavePath: (file) => { nextSavePath = file; },
         setOpenPaths: (paths) => { nextOpenPaths = paths; },
+    });
+    if (!only || only === 'tabs') await require('./tabs.js')({
+        win, bw, tabs, js, check, waitFor, sleep, outDir, inputPdf, savedPdf,
+        setOpenPaths: (paths) => { nextOpenPaths = paths; },
+        setMessageBoxChoice: (choice) => { nextMessageBoxChoice = choice; },
     });
 
     console.log(`\nscreenshot: ${shot}\noutput dir: ${outDir}`);
@@ -226,7 +243,7 @@ async function makeFormPdf(file) {
 
 async function saveAs(js, file) {
     nextSavePath = file;
-    BrowserWindow.getAllWindows().find((w) => w.webContents.getURL().startsWith('app://')).webContents.send('menu:command', 'save-as');
+    require('../main/tabs.js').activeContents().send('menu:command', 'save-as');
     for (let t = 0; t < 60; t++) {
         if (fs.existsSync(file) && fs.statSync(file).size > 0) {
             await sleep(300);

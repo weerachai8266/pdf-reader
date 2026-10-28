@@ -74,7 +74,8 @@ async function init() {
     $('app-version').textContent = `v${await window.host.version()}`;
     window.host.onFileOpened((file) => openFile(file));
     const pending = await window.host.pendingFile();
-    if (pending) openFile(pending);
+    if (pending?.createPaths) createPdf(pending.createPaths);
+    else if (pending) openFile(pending);
     updateUi();
 }
 
@@ -151,7 +152,11 @@ async function convertPaths(paths, title) {
 // File > Create PDF: the files become one new, unsaved document.
 async function createPdf(paths = null) {
     paths ??= await window.host.convertPick({ multiple: true });
-    if (!paths.length || !(await confirmDiscard())) return;
+    if (!paths.length) return;
+    if (hasDocument()) {
+        window.host.openTab({ createPaths: paths });
+        return;
+    }
     const pdfs = await convertPaths(paths, 'Create PDF');
     if (!pdfs?.length) return;
     const [first, ...rest] = pdfs;
@@ -193,9 +198,15 @@ function reportLoadError(err, name = '') {
     toast(`เปิดไฟล์ ${name} ไม่ได้: ${err?.message || err}`, 'error');
 }
 
+// With a document already open, another file opens in a new tab.
+function openOrTab(file) {
+    if (hasDocument()) window.host.openTab(file);
+    else openFile(file);
+}
+
 async function openDialog() {
     const [file] = await window.host.openDialog({ multiple: false });
-    if (file) openFile(file);
+    if (file) openOrTab(file);
 }
 
 async function save(asNew) {
@@ -274,6 +285,8 @@ function updateTitle() {
     // Electron mirrors document.title into the window title.
     document.title = `${name}${APP_NAME}`;
     $('file-name').textContent = state.fileName || 'ยังไม่ได้เปิดไฟล์';
+    // Tab label, window title and the unsaved-changes prompt (main/tabs.js).
+    window.host.docInfo({ name: state.fileName, path: state.filePath, dirty: state.dirty });
 }
 
 function updateUi() {
@@ -488,7 +501,7 @@ function bindDragDrop() {
         // A single PDF opens as it is; anything else is converted first.
         if (files.length === 1 && /\.pdf$/i.test(files[0].name)) {
             const loaded = await window.host.readFile(window.host.pathForFile(files[0]));
-            if (loaded) openFile(loaded);
+            if (loaded) openOrTab(loaded);
             return;
         }
         createPdf(files.map((f) => window.host.pathForFile(f)));

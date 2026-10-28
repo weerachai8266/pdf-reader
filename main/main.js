@@ -1,6 +1,6 @@
 'use strict';
 
-const { app, BrowserWindow, dialog, ipcMain, protocol, net, shell } = require('electron');
+const { app, dialog, ipcMain, protocol, net } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
@@ -9,6 +9,7 @@ const { buildMenu } = require('./menu');
 const { initPrint } = require('./print');
 const { initConvert } = require('./convert');
 const { initDigsig } = require('./digsig');
+const tabs = require('./tabs');
 
 const APP_ROOT = path.join(__dirname, '..');
 
@@ -18,9 +19,7 @@ protocol.registerSchemesAsPrivileged([
     { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } },
 ]);
 
-let mainWindow = null;
-let isDirty = false;
-let pendingPath = findPdfArg(process.argv);
+const pendingPath = findPdfArg(process.argv);
 
 function findPdfArg(argv) {
     return argv.slice(1).find((a) => a.toLowerCase().endsWith('.pdf')) || null;
@@ -42,44 +41,6 @@ function registerAppProtocol() {
     });
 }
 
-function createWindow() {
-    mainWindow = new BrowserWindow({
-        width: 1280,
-        height: 860,
-        minWidth: 720,
-        minHeight: 480,
-        backgroundColor: '#3b3f46',
-        icon: path.join(APP_ROOT, 'build', 'icon.ico'),
-        show: false,
-        webPreferences: {
-            preload: path.join(__dirname, 'preload.js'),
-            contextIsolation: true,
-            nodeIntegration: false,
-            sandbox: true,
-        },
-    });
-    mainWindow.loadURL('app://local/src/index.html');
-    mainWindow.once('ready-to-show', () => mainWindow.show());
-    mainWindow.on('close', (e) => {
-        if (!isDirty) return;
-        const choice = dialog.showMessageBoxSync(mainWindow, {
-            type: 'warning',
-            buttons: ["Don't Save", 'Cancel'],
-            defaultId: 1,
-            cancelId: 1,
-            message: 'เอกสารมีการแก้ไขที่ยังไม่ได้บันทึก',
-        });
-        if (choice !== 0) e.preventDefault();
-    });
-    mainWindow.webContents.on('will-navigate', (e) => e.preventDefault());
-    // Links inside PDFs open in the default browser / mail client.
-    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        if (/^(https?:|mailto:)/i.test(url)) shell.openExternal(url);
-        return { action: 'deny' };
-    });
-    if (process.argv.includes('--devtools')) mainWindow.webContents.openDevTools();
-}
-
 async function readPdf(filePath) {
     const data = await fs.readFile(filePath);
     return { path: filePath, name: path.basename(filePath), data: new Uint8Array(data) };
@@ -89,15 +50,27 @@ async function readPdf(filePath) {
 // is launched through another entry script, e.g. the smoke test).
 ipcMain.handle('app:version', () => require('../package.json').version);
 
-ipcMain.handle('file:pending', async () => {
-    if (!pendingPath) return null;
-    const p = pendingPath;
-    pendingPath = null;
-    return readPdf(p);
+// The file a document tab was opened with (asked once by its renderer).
+ipcMain.handle('file:pending', async (e) => {
+    const file = tabs.takePending(e.sender);
+    if (file?.path && !file.data && !file.createPaths) return readPdf(file.path);
+    return file;
 });
 
+// A tab that already shows a document opens another file in a tab.
+// file: { path, name, data } or { createPaths }.
+ipcMain.handle('tabs:open', (_e, file) => {
+    if (file && (file.data || Array.isArray(file.createPaths))) tabs.openInTab(file);
+});
+
+const fromStrip = (e) => e.sender === tabs.getWindow()?.webContents;
+ipcMain.on('tabs:ready', (e) => fromStrip(e) && tabs.refresh());
+ipcMain.on('tabs:activate', (e, id) => fromStrip(e) && tabs.activate(id));
+ipcMain.on('tabs:close', (e, id) => fromStrip(e) && tabs.closeTab(id));
+ipcMain.on('tabs:new', (e) => fromStrip(e) && tabs.newTab());
+
 ipcMain.handle('file:open-dialog', async (_e, { multiple = false } = {}) => {
-    const res = await dialog.showOpenDialog(mainWindow, {
+    const res = await dialog.showOpenDialog(tabs.getWindow(), {
         filters: [{ name: 'PDF', extensions: ['pdf'] }],
         properties: multiple ? ['openFile', 'multiSelections'] : ['openFile'],
     });
@@ -115,7 +88,7 @@ ipcMain.handle('file:save', async (_e, { data, filePath, suggestedName }) => {
     if (!target) {
         // The suggested name's extension picks the file type (PDF, DOCX, TXT…).
         const ext = path.extname(suggestedName || '').slice(1).toLowerCase() || 'pdf';
-        const res = await dialog.showSaveDialog(mainWindow, {
+        const res = await dialog.showSaveDialog(tabs.getWindow(), {
             defaultPath: suggestedName || 'document.pdf',
             filters: [{ name: ext.toUpperCase(), extensions: [ext] }],
         });
@@ -133,7 +106,7 @@ ipcMain.handle('file:save', async (_e, { data, filePath, suggestedName }) => {
 // Writes several new files into a folder the user picks. Existing files
 // are never overwritten: "name.pdf" becomes "name (2).pdf".
 ipcMain.handle('file:save-many', async (_e, { files, title }) => {
-    const res = await dialog.showOpenDialog(mainWindow, {
+    const res = await dialog.showOpenDialog(tabs.getWindow(), {
         title: title || 'Choose folder',
         properties: ['openDirectory', 'createDirectory'],
     });
@@ -190,30 +163,33 @@ ipcMain.handle('font:thai', async () => {
     }
 });
 
-ipcMain.on('doc:dirty', (_e, dirty) => {
-    isDirty = Boolean(dirty);
-});
+// Name, path and unsaved state of a tab's document (tab label, window title,
+// unsaved-changes prompt on close).
+ipcMain.on('doc:info', (e, info) => tabs.setDocInfo(e.sender, info || {}));
 
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
     app.quit();
 } else {
+    // A PDF double-clicked while the app runs opens in a tab of this window.
     app.on('second-instance', async (_e, argv) => {
-        if (!mainWindow) return;
-        if (mainWindow.isMinimized()) mainWindow.restore();
-        mainWindow.focus();
+        const win = tabs.getWindow();
+        if (!win) return;
+        if (win.isMinimized()) win.restore();
+        win.focus();
         const p = findPdfArg(argv);
-        if (p) mainWindow.webContents.send('file:opened', await readPdf(p));
+        if (p) tabs.openInTab(await readPdf(p));
     });
 
     app.whenReady().then(() => {
         registerAppProtocol();
-        createWindow();
+        tabs.createWindow();
+        tabs.newTab(pendingPath ? { path: pendingPath, name: path.basename(pendingPath) } : null);
         initPrint();
-        initConvert(() => mainWindow);
-        initDigsig(() => mainWindow);
-        const updater = initUpdater(() => mainWindow);
-        buildMenu(() => mainWindow, { checkForUpdates: () => updater.checkNow() });
+        initConvert(tabs.getWindow);
+        initDigsig(tabs.getWindow);
+        const updater = initUpdater(tabs.getWindow, (channel, value) => tabs.allContents().forEach((wc) => wc.send(channel, value)));
+        buildMenu(tabs.getWindow, { getContents: tabs.activeContents, tabs, checkForUpdates: () => updater.checkNow() });
     });
 
     app.on('window-all-closed', () => app.quit());

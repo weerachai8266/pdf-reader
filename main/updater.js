@@ -36,8 +36,9 @@ function loadUpdateConfig() {
 }
 
 // Returns { checkNow } for the Help > Check for Updates menu item.
-function initUpdater(getWindow) {
-    const send = (status) => getWindow()?.webContents.send('update:status', status);
+// broadcast(channel, value): to every document tab.
+function initUpdater(getWindow, broadcast) {
+    const send = (status) => broadcast('update:status', status);
     let autoUpdater = null;
     ipcMain.handle('update:install', () => {
         if (autoUpdater) autoUpdater.quitAndInstall(false, true);

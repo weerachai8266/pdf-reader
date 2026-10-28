@@ -36,7 +36,9 @@ Still enforced from the global rules:
 
 ```
 main/            Electron main process (CommonJS)
-  main.js        app:// protocol (serves src/ + node_modules/ only), window, IPC: file:*, font:thai, font:get (edit fonts)
+  main.js        app:// protocol (serves src/ + node_modules/ only), IPC: file:*, tabs:*, doc:info, font:thai, font:get
+  tabs.js        window = tab strip page (src/tabs/); each document is a WebContentsView running src/index.html.
+                 openInTab: same path -> activate, empty active tab -> reuse, else new tab. Menu commands go to the active tab
   menu.js        English menu; sends 'menu:command' to the renderer (accelerators are display-only)
   print.js       printers (+ default from HKCU ...\Windows\Device), driver Properties (printui /e), silent print to the
                  chosen printer; hidden window lays out sheets at 300 dpi (src/js/printlayout.js, shared with the preview)
@@ -84,14 +86,15 @@ Always unset `ELECTRON_RUN_AS_NODE` first: the VS Code host sets it, and Electro
 cd C:\dev\pdf-reader
 Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
 npm test                                   # full end-to-end suite (~3 min), must print ALL PASSED
-$env:SMOKE_ONLY='editing'; npx electron test/smoke.js   # quick: doctools | convert | editing | digsig
+$env:SMOKE_ONLY='editing'; npx electron test/smoke.js   # quick: print | doctools | convert | editing | digsig | tabs
 npm run dist                               # NSIS installer -> dist\PDF-Reader-Setup-<ver>.exe (~250 MB)
 node test/packaged.mjs <file.pdf> [--ocr] [--signed] [--convert <file.docx>]   # drives the built exe over CDP
 ```
 
 - **First build on a machine:** `powershell -ExecutionPolicy Bypass -File tools\fetch-libreoffice.ps1`. It downloads LibreOffice 26.2.6 and TLWG fonts, checks their SHA-256, unpacks them without installing, and trims them to about 520 MB.
 - **Test isolation:** tests set `userData` to a temp folder, so Digital IDs and trust settings never touch the real profile.
-- **Mocked dialogs:** save dialogs use `setSavePath`; folder and file pickers use `setFolder` / `setOpenPaths`.
+- **Mocked dialogs:** save dialogs use `setSavePath`; folder and file pickers use `setFolder` / `setOpenPaths`; unsaved-changes prompts (`showMessageBoxSync`) use `setMessageBoxChoice`.
+- **Tabs in tests:** `win` in the harness is a shim whose `webContents` is the *active tab's* document; the real BrowserWindow (`bw`) only shows the tab strip. `packaged.mjs` picks the CDP target whose URL ends in `/src/index.html`.
 - **Test output:** each run writes screenshots to `%TEMP%\pdf-reader-smoke-*`. Look at them (`Read` the PNG) after UI changes.
 - **Driving the UI from tests:** use real input events (`sendInputEvent`) for drags. Use `elementFromPoint(...).dispatchEvent(new MouseEvent('click', …))` for a click at a point.
 - **Saving from tests:** send Save As through the menu: `win.webContents.send('menu:command', 'save-as')`.
@@ -148,7 +151,7 @@ node test/packaged.mjs <file.pdf> [--ocr] [--signed] [--convert <file.docx>]   #
 
 ---
 
-## 6. Status (v0.9.2, 2026-10-28) and backlog
+## 6. Status (v0.11.0, 2026-10-28) and backlog
 
 **Done:**
 - viewing and Thai search
@@ -165,6 +168,7 @@ node test/packaged.mjs <file.pdf> [--ocr] [--signed] [--convert <file.docx>]   #
 - certificate signatures and verification, incl. telling later signatures / form fills / content edits apart
 - compare files
 - edit text and images, add text, add image, undo
+- Acrobat-style Print dialog (v0.10), document tabs (v0.11)
 
 **Open items to raise with the user:**
 1. **Update server URL** for electron-updater. The installer has a placeholder; it is needed before rollout.

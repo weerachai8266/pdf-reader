@@ -3,12 +3,14 @@
 // Native application menu (English, Acrobat-style). Commands are forwarded
 // to the renderer, which owns the document; accelerators are display-only
 // (registerAccelerator: false) because the renderer already handles the
-// same keys and would otherwise run each command twice.
+// same keys and would otherwise run each command twice. Tab commands are
+// handled here in the main process, so their accelerators are real.
 
 const { Menu, app, dialog } = require('electron');
 
-function buildMenu(getWindow, { checkForUpdates }) {
-    const send = (command) => () => getWindow()?.webContents.send('menu:command', command);
+// getContents: the active tab's document; tabs: main/tabs.js.
+function buildMenu(getWindow, { getContents, tabs, checkForUpdates }) {
+    const send = (command) => () => getContents()?.send('menu:command', command);
     const item = (label, command, accelerator) => ({
         label,
         click: send(command),
@@ -19,6 +21,7 @@ function buildMenu(getWindow, { checkForUpdates }) {
         {
             label: '&File',
             submenu: [
+                { label: '&New Tab', accelerator: 'Ctrl+T', click: () => tabs.newTab() },
                 item('&Open…', 'open', 'Ctrl+O'),
                 item('&Create PDF from File…', 'create-pdf'),
                 item('&Combine Files…', 'merge'),
@@ -37,6 +40,7 @@ function buildMenu(getWindow, { checkForUpdates }) {
                 { type: 'separator' },
                 item('&Print…', 'print', 'Ctrl+P'),
                 { type: 'separator' },
+                { label: '&Close Tab', accelerator: 'Ctrl+W', click: () => tabs.closeActive() },
                 { label: 'E&xit', role: 'quit' },
             ],
         },
@@ -104,6 +108,13 @@ function buildMenu(getWindow, { checkForUpdates }) {
                 item('&Reduce File Size…', 'compress'),
                 item('&Protect with Password…', 'protect'),
                 item('Remove Se&curity…', 'remove-security'),
+            ],
+        },
+        {
+            label: '&Window',
+            submenu: [
+                { label: '&Next Tab', accelerator: 'Ctrl+Tab', click: () => tabs.nextTab() },
+                { label: '&Previous Tab', accelerator: 'Ctrl+Shift+Tab', click: () => tabs.prevTab() },
             ],
         },
         {

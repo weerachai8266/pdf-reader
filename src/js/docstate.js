@@ -67,7 +67,6 @@ export function getPdfPage(entry) {
 
 export function setDirty(dirty) {
     state.dirty = dirty;
-    window.host.setDirty(dirty);
     emit('dirty-changed', dirty);
 }
 

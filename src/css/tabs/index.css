@@ -1,0 +1,112 @@
+/* Tab strip above the document views (main/tabs.js lays the views out
+   below --tabs-h, so the two heights must match). */
+
+:root {
+    --tabs-h: 36px;
+    --tab-w: 220px;
+}
+
+body {
+    background: var(--surface-2);
+}
+
+.tab-strip {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: var(--tabs-h);
+    padding: 0 6px;
+    border-bottom: 1px solid var(--border);
+    user-select: none;
+}
+
+.tab-list {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    min-width: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
+.tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 1 auto;
+    width: var(--tab-w);
+    min-width: 90px;
+    height: calc(var(--tabs-h) - 5px);
+    padding: 0 4px 0 10px;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: var(--radius) var(--radius) 0 0;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+    cursor: default;
+}
+
+.tab:hover {
+    background: var(--surface);
+    color: var(--text);
+}
+
+.tab[aria-selected='true'] {
+    position: relative;
+    top: 1px;
+    border-color: var(--border);
+    background: var(--surface);
+    color: var(--text);
+}
+
+.tab .icon {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+}
+
+.tab-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.tab-dirty {
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+}
+
+.tab-close,
+.tab-new {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 3px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+}
+
+.tab-close .icon {
+    width: 14px;
+    height: 14px;
+}
+
+.tab-close:hover,
+.tab-new:hover {
+    background: var(--surface-2);
+}
+
+.tab-new {
+    align-self: center;
+    margin-left: 2px;
+    color: var(--text-muted);
+}

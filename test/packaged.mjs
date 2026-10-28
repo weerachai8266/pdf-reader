@@ -19,7 +19,7 @@ for (let i = 0; i < 60 && !target; i++) {
     await sleep(250);
     try {
         const list = await (await fetch(`http://127.0.0.1:${PORT}/json`)).json();
-        target = list.find((t) => t.url.startsWith('app://'));
+        target = list.find((t) => t.url.endsWith('/src/index.html')); // a document tab, not the tab strip
     } catch {}
 }
 if (!target) {
