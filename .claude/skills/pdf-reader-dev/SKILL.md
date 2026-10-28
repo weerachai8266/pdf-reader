@@ -57,6 +57,7 @@ src/js/          ES modules (renderer, sandboxed; talks to main only via window.
   redact.js      rasterize page + paint boxes + qpdf + optional OCR
   convert.js, pdf2html.js, tounicode.js   Create PDF / Export (Word via HTML -> LibreOffice, images, text)
   pdfsig.js, certsign.js, signatures.js   incremental-update signing writer, sign UI, verification bar/panel
+  sigdiff.js     what changed after each signature (later signature / form+comments / content), by object diff
   compare.js     two-level Myers diff (lines, then Intl.Segmenter('th') words)
   contentedit.js, editmode.js   content-stream interpreter/rewriter; Edit Text & Images, Add Text, undo
   qpdf.js + workers/qpdf-worker.js   qpdf WebAssembly in a worker (renderer CSP blocks wasm on the main thread)
@@ -112,6 +113,7 @@ node test/packaged.mjs <file.pdf> [--ocr] [--signed] [--convert <file.docx>]   #
 
 **Libraries**
 - **pdf-lib:** `dict.lookup(key, Type)` throws when the key is missing; use `lookupMaybe`.
+- **pdf-lib `page.node.addAnnot()` normalizes the page** (wraps /Contents in q/Q, fills /Resources). In an incremental update that counts as a content change; push onto /Annots directly instead.
 - **pdf-lib keeps every parsed object, including orphans.** That is why every pdf-lib save goes through qpdf optimize, and why redaction calls it explicitly.
 - **pdf.js v6:** `getPermissions()` may return a Set, so spread it before `.includes`.
 - **qpdf.js** binds `console.log` at instance creation. The worker captures output by swapping console methods. `--is-encrypted` reports "invalid password" for files with an open password; treat that as encrypted.
@@ -143,7 +145,7 @@ node test/packaged.mjs <file.pdf> [--ocr] [--signed] [--convert <file.docx>]   #
 
 ---
 
-## 6. Status (v0.9.0, 2026-10-27) and backlog
+## 6. Status (v0.9.2, 2026-10-28) and backlog
 
 **Done:**
 - viewing and Thai search
@@ -157,7 +159,7 @@ node test/packaged.mjs <file.pdf> [--ocr] [--signed] [--convert <file.docx>]   #
 - redact, compress, password protection
 - Office/image → PDF; PDF → Word, images, text
 - Laksaman fallback for TH Sarabun
-- certificate signatures and verification
+- certificate signatures and verification, incl. telling later signatures / form fills / content edits apart
 - compare files
 - edit text and images, add text, add image, undo
 
@@ -167,4 +169,4 @@ node test/packaged.mjs <file.pdf> [--ocr] [--signed] [--convert <file.docx>]   #
 3. **App name and branding**; it is still "PDF Reader".
 4. **Real organisation files:** forms (JS/XFA), scans, a physical printer.
 5. **Smart card / USB token signing** via the Windows certificate store. It needs a native module.
-6. **Editing gaps:** no paragraph reflow, a trusted timestamp (TSA), revocation checks, and "later signature only" detection for multi-signed files.
+6. **Editing gaps:** no paragraph reflow, a trusted timestamp (TSA), and revocation checks (TSA/revocation only matter if the org uses CA-issued certificates and the PCs can reach the network).

@@ -96,7 +96,7 @@ if (process.argv.includes('--ocr')) {
 }
 // --signed: the file carries digital signatures that must verify.
 if (process.argv.includes('--signed')) {
-    const ok = await waitFor(`!document.getElementById('sig-banner').hidden && document.getElementById('sig-banner').dataset.status !== 'invalid'`, 20000);
+    const ok = await waitFor(`!document.getElementById('sig-banner').hidden && !['invalid', 'modified'].includes(document.getElementById('sig-banner').dataset.status)`, 20000);
     if (!ok) failed++;
     console.log(`${ok ? 'PASS' : 'FAIL'}  signatures verified in packaged build`, await evaluate(`document.getElementById('sig-banner-text').textContent`));
 }

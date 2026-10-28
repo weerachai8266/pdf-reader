@@ -396,6 +396,7 @@ kbd {
 .sig-banner[data-status='valid'],
 .sig-banner[data-status='changed'] { --banner-bg: var(--ok-soft); --banner-icon: var(--ok); }
 .sig-banner[data-status='unknown'] { --banner-bg: var(--warn-soft); --banner-icon: var(--warn); }
+.sig-banner[data-status='modified'],
 .sig-banner[data-status='invalid'] { --banner-bg: var(--danger-soft); --banner-icon: var(--danger); }
 
 .sig-banner-icon {

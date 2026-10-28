@@ -95,7 +95,7 @@ module.exports = async function testDigsig(t) {
     await waitFor(win, `document.getElementById('file-name').textContent === 'signed2.pdf'`, 20000);
     check('two signatures listed', await waitFor(win, `document.querySelectorAll('#sig-list .sig-item').length === 2`, 20000));
     const statuses = await js(`[...document.querySelectorAll('#sig-list .sig-item')].map((li) => li.dataset.status).join(',')`);
-    check('both signatures verify (first: changed after, second: valid)', statuses === 'changed,valid', statuses);
+    check('both signatures valid: only a later signature was appended', statuses === 'valid,valid', statuses);
     const orig = fs.readFileSync(signed1);
     check('second signature appended without touching the first file bytes', fs.readFileSync(signed2).subarray(0, orig.length).equals(orig));
     await sleep(1000);
@@ -110,6 +110,18 @@ module.exports = async function testDigsig(t) {
     fs.writeFileSync(tampered, bytes);
     await open(tampered);
     check('tampered file: signature invalid', await waitFor(win, `document.getElementById('sig-banner').dataset.status === 'invalid'`, 20000), await banner());
+
+    // ---- changes appended after signing: comments are allowed, content edits are not
+    const commented = path.join(outDir, 'signed-commented.pdf');
+    fs.writeFileSync(commented, await appendUpdate(signed2, 'comment'));
+    await open(commented);
+    check('comment added after signing: valid with changes', await waitFor(win, `document.getElementById('sig-banner').dataset.status === 'changed'`, 20000), await banner());
+    const edited = path.join(outDir, 'signed-edited.pdf');
+    fs.writeFileSync(edited, await appendUpdate(signed2, 'content'));
+    await open(edited);
+    check('page content edited after signing: modified', await waitFor(win, `document.getElementById('sig-banner').dataset.status === 'modified'`, 20000), await banner());
+    const editedStatuses = await js(`[...document.querySelectorAll('#sig-list .sig-item')].map((li) => li.dataset.status).join(',')`);
+    check('both signatures flagged after the content edit', editedStatuses === 'modified,modified', editedStatuses);
 
     // ---- unsigned file: no banner ---------------------------------------------------------
     await open(inputPdf);
@@ -133,6 +145,39 @@ module.exports = async function testDigsig(t) {
     await sleep(600);
     fs.writeFileSync(path.join(outDir, 'compare.png'), (await win.capturePage()).toPNG());
 };
+
+// Appends a hand-written incremental update to a signed file: 'comment'
+// adds a text note to page 1, 'content' replaces page 1's first content stream.
+async function appendUpdate(file, what) {
+    const { PDFDocument, PDFName, PDFArray, PDFRef } = require('pdf-lib');
+    const bytes = fs.readFileSync(file);
+    const doc = await PDFDocument.load(bytes, { updateMetadata: false });
+    const page = doc.getPages()[0];
+    const root = doc.context.trailerInfo.Root.objectNumber;
+    const next = doc.context.largestObjectNumber + 1;
+    const objs = [];
+    if (what === 'content') {
+        const contents = page.node.get(PDFName.of('Contents'));
+        const first = contents instanceof PDFArray ? contents.get(0) : contents;
+        objs.push([first.objectNumber, '<< /Length 20 >>\nstream\n0 0 m 99 99 l S\nendstream']);
+    } else {
+        const annots = page.node.lookupMaybe(PDFName.of('Annots'), PDFArray);
+        page.node.set(PDFName.of('Annots'), doc.context.obj([...(annots ? annots.asArray() : []), PDFRef.of(next)]));
+        objs.push([next, '<< /Type /Annot /Subtype /Text /Rect [ 40 40 60 60 ] /Contents (note) >>'], [page.ref.objectNumber, page.node.toString()]);
+    }
+    const text = bytes.toString('latin1');
+    const prev = /startxref\s+(\d+)\s*%%EOF\s*$/.exec(text)[1];
+    let out = text.endsWith('\n') ? text : `${text}\n`;
+    const offsets = [];
+    for (const [num, body] of objs) {
+        offsets.push([num, out.length]);
+        out += `${num} 0 obj\n${body}\nendobj\n`;
+    }
+    const xref = out.length;
+    out += 'xref\n' + offsets.map(([num, off]) => `${num} 1\n${String(off).padStart(10, '0')} 00000 n \n`).join('');
+    out += `trailer\n<< /Size ${Math.max(next + 1, ...objs.map(([n]) => n + 1))} /Root ${root} 0 R /Prev ${prev} >>\nstartxref\n${xref}\n%%EOF\n`;
+    return Buffer.from(out, 'latin1');
+}
 
 // thai.pdf with one word changed on page 2 and a sentence added on page 3.
 async function makeVersion2(file) {

@@ -285,6 +285,7 @@ body:not(.has-doc) .sidebar,
 .sig-item[data-status='valid'],
 .sig-item[data-status='changed'] { --sig-color: var(--ok); }
 .sig-item[data-status='unknown'] { --sig-color: var(--warn); }
+.sig-item[data-status='modified'],
 .sig-item[data-status='invalid'] { --sig-color: var(--danger); }
 
 .sig-head {

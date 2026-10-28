@@ -222,7 +222,12 @@ export async function prepareSignature(bytes, { pageIndex, rect, signerName, rea
         widget.AP = { N: ctx.register(ap) };
     }
     const widgetRef = ctx.register(ctx.obj(widget));
-    page.node.addAnnot(widgetRef);
+    // Not page.node.addAnnot(): it normalizes the page first, wrapping the
+    // content streams in q/Q, which a later signature check sees as a
+    // content change.
+    const annots = page.node.lookupMaybe(PDFName.of('Annots'), PDFArray);
+    if (annots) annots.push(widgetRef);
+    else page.node.set(PDFName.of('Annots'), ctx.obj([widgetRef]));
     form.acroForm.addField(widgetRef);
     form.acroForm.dict.set(PDFName.of('SigFlags'), ctx.obj(3));
     await doc.flush(); // embeds the font subset
