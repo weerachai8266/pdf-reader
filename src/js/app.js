@@ -24,6 +24,7 @@ import { applyRedactions, pendingRedactions } from './redact.js';
 import { CONVERTIBLE, filesToPdfs, exportWord, exportImages, exportText } from './convert.js';
 import { initSignatures, checkSignatures, hasSignatures } from './signatures.js';
 import { initCertSign, startCertSign } from './certsign.js';
+import { initPrintDialog, printWithDialog } from './printdialog.js';
 import { initCompare, compareFiles, clearCompare } from './compare.js';
 import { initEditMode, startEditTool, addImage, undoEdit } from './editmode.js';
 
@@ -47,6 +48,7 @@ async function init() {
     initSignatures();
     initCertSign((file) => openFile(file, { force: true }));
     initCompare();
+    initPrintDialog();
     initEditMode(scroller);
 
     on('dirty-changed', updateTitle);
@@ -245,18 +247,23 @@ async function printDocument() {
         toast('เจ้าของเอกสารไม่อนุญาตให้พิมพ์ไฟล์นี้', 'error');
         return;
     }
+    let data;
     setBusy(true);
-    toast('กำลังเตรียมพิมพ์…');
     try {
         // Print exactly what Save would write: forms, highlights, signatures.
-        const { data } = await buildPdf();
-        const result = await window.host.print({ data, password: passwordOf(first.pdf), title: state.fileName });
-        if (!result.ok && !result.cancelled) toast(`พิมพ์ไม่สำเร็จ: ${result.error || ''}`, 'error');
+        ({ data } = await buildPdf());
     } catch (err) {
         console.error(err);
         toast(`พิมพ์ไม่สำเร็จ: ${err?.message || err}`, 'error');
+        return;
     } finally {
         setBusy(false);
+    }
+    try {
+        await printWithDialog({ data, password: passwordOf(first.pdf), title: state.fileName, current: currentPageIndex(), setBusy });
+    } catch (err) {
+        console.error(err);
+        toast(`พิมพ์ไม่สำเร็จ: ${err?.message || err}`, 'error');
     }
 }
 

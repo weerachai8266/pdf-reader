@@ -38,7 +38,8 @@ Still enforced from the global rules:
 main/            Electron main process (CommonJS)
   main.js        app:// protocol (serves src/ + node_modules/ only), window, IPC: file:*, font:thai, font:get (edit fonts)
   menu.js        English menu; sends 'menu:command' to the renderer (accelerators are display-only)
-  print.js       hidden window renders 300 dpi images -> webContents.print
+  print.js       printers (+ default from HKCU ...\Windows\Device), driver Properties (printui /e), silent print to the
+                 chosen printer; hidden window lays out sheets at 300 dpi (src/js/printlayout.js, shared with the preview)
   convert.js     LibreOffice headless (serial queue, own profile in userData): Office/TIFF -> PDF, HTML -> DOCX
   digsig.js      node-forge: Digital IDs (.pfx in userData/digital-ids), CMS sign, verify (node:crypto, RSA+EC)
   updater.js     electron-updater, generic provider (URL from update.json next to exe or config/update.json)
@@ -58,6 +59,7 @@ src/js/          ES modules (renderer, sandboxed; talks to main only via window.
   convert.js, pdf2html.js, tounicode.js   Create PDF / Export (Word via HTML -> LibreOffice, images, text)
   pdfsig.js, certsign.js, signatures.js   incremental-update signing writer, sign UI, verification bar/panel
   sigdiff.js     what changed after each signature (later signature / form+comments / content), by object diff
+  printdialog.js Acrobat-style Print dialog + live sheet preview (options remembered in localStorage)
   compare.js     two-level Myers diff (lines, then Intl.Segmenter('th') words)
   contentedit.js, editmode.js   content-stream interpreter/rewriter; Edit Text & Images, Add Text, undo
   qpdf.js + workers/qpdf-worker.js   qpdf WebAssembly in a worker (renderer CSP blocks wasm on the main thread)
@@ -112,6 +114,7 @@ node test/packaged.mjs <file.pdf> [--ocr] [--signed] [--convert <file.docx>]   #
 - **Thai fonts for pdf-lib:** Tahoma subset works; Leelawadee breaks in fontkit. Laksaman is the GPL twin of TH Sarabun New.
 
 **Libraries**
+- **Printing:** `webContents.print({ silent: false })` from a hidden window never showed the Windows dialog reliably (callback only after a long wait). The app uses its own dialog + `silent: true` + `deviceName`. Electron 45 printer info has no `isDefault`. The smoke test replaces `wc.print` with printToPDF, so it never reaches a real printer — test real printers by hand.
 - **pdf-lib:** `dict.lookup(key, Type)` throws when the key is missing; use `lookupMaybe`.
 - **pdf-lib `page.node.addAnnot()` normalizes the page** (wraps /Contents in q/Q, fills /Resources). In an incremental update that counts as a content change; push onto /Annots directly instead.
 - **pdf-lib keeps every parsed object, including orphans.** That is why every pdf-lib save goes through qpdf optimize, and why redaction calls it explicitly.

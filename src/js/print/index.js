@@ -1,59 +1,41 @@
-// Hidden print window: renders each page of the given PDF to an image at
-// print resolution, then tells the main process it can open the dialog.
+// Hidden print window: lays out each chosen page on a sheet of the chosen
+// paper at print resolution (printlayout.js, same as the dialog preview),
+// then tells the main process it can send the job to the printer.
 
 import { pdfjsLib, loadPdf } from '../pdfjs.js';
+import { renderSheet, toPortrait } from '../printlayout.js';
 
 const PRINT_DPI = 300;
 
-async function renderPage(pdf, number) {
-    const page = await pdf.getPage(number);
-    const viewport = page.getViewport({ scale: PRINT_DPI / 72 });
-    let canvas = document.createElement('canvas');
-    canvas.width = Math.floor(viewport.width);
-    canvas.height = Math.floor(viewport.height);
-    const ctx = canvas.getContext('2d', { alpha: false });
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    // The bytes are already the saved output, so field values are in the
-    // file; the print intent drops annotations flagged as non-printing.
-    await page.render({ canvasContext: ctx, viewport, annotationMode: pdfjsLib.AnnotationMode.ENABLE, intent: 'print' }).promise;
-    page.cleanup();
-
-    // Landscape pages are turned a quarter counter-clockwise to fit portrait
-    // paper (Acrobat's "auto portrait/landscape": the page top ends up on
-    // the left edge of the sheet).
-    if (canvas.width > canvas.height) {
-        const rotated = document.createElement('canvas');
-        rotated.width = canvas.height;
-        rotated.height = canvas.width;
-        const rctx = rotated.getContext('2d', { alpha: false });
-        rctx.translate(0, rotated.height);
-        rctx.rotate(-Math.PI / 2);
-        rctx.drawImage(canvas, 0, 0);
-        canvas.width = 0;
-        canvas = rotated;
-    }
-
-    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
-    canvas.width = 0;
-    const img = new Image();
-    img.src = URL.createObjectURL(blob);
-    img.alt = '';
-    await img.decode();
-    return img;
-}
-
-window.printHost.onLoad(async ({ data, password }) => {
+// job: { data, password, pages (0-based), layout, grayscale }
+window.printHost.onLoad(async (job) => {
     try {
-        const pdf = await loadPdf(data, async () => password ?? null);
+        const pdf = await loadPdf(job.data, async () => job.password ?? null);
         const sheets = document.getElementById('sheets');
-        for (let n = 1; n <= pdf.numPages; n++) {
+        for (const [n, index] of job.pages.entries()) {
+            const page = await pdf.getPage(index + 1);
+            const { canvas } = await renderSheet(page, job.layout, {
+                dpi: PRINT_DPI,
+                // The bytes are the saved output, so form values are in the file; the
+                // print intent drops annotations flagged as non-printing.
+                annotationMode: pdfjsLib.AnnotationMode.ENABLE,
+                grayscale: job.grayscale,
+            });
+            page.cleanup();
+            const portrait = toPortrait(canvas);
+            const blob = await new Promise((resolve) => portrait.toBlob(resolve, 'image/png'));
+            portrait.width = 0;
+            const img = new Image();
+            img.src = URL.createObjectURL(blob);
+            img.alt = '';
+            await img.decode();
             const sheet = document.createElement('section');
             sheet.className = 'sheet';
-            sheet.append(await renderPage(pdf, n));
+            sheet.append(img);
             sheets.append(sheet);
+            window.printHost.progress({ done: n + 1, total: job.pages.length });
         }
-        window.printHost.rendered({ pages: pdf.numPages });
+        window.printHost.rendered({ sheets: job.pages.length });
     } catch (err) {
         window.printHost.rendered({ error: err?.message || String(err) });
     }

@@ -507,6 +507,104 @@
         </form>
     </dialog>
 
+    <dialog id="dlg-print" class="dialog-print">
+        <form method="dialog">
+            <h2>Print</h2>
+            <div class="print-layout">
+                <div class="print-options">
+                    <div class="print-row">
+                        <label class="print-inline print-grow"><span>เครื่องพิมพ์</span><select id="pr-printer"></select></label>
+                        <button type="button" class="secondary" id="pr-props">Properties</button>
+                    </div>
+                    <div class="print-row">
+                        <label class="print-inline"><span>สำเนา</span><input id="pr-copies" class="inline-number" type="number" min="1" max="999" value="1"></label>
+                        <label class="print-inline"><input type="checkbox" id="pr-collate" checked> เรียงเป็นชุด</label>
+                        <label class="print-inline"><input type="checkbox" id="pr-gray"> พิมพ์ขาวดำ</label>
+                    </div>
+
+                    <fieldset class="option-group">
+                        <legend>หน้าที่จะพิมพ์</legend>
+                        <div class="print-row">
+                            <label class="print-inline"><input type="radio" name="pr-range" value="all" checked> ทุกหน้า</label>
+                            <label class="print-inline"><input type="radio" name="pr-range" value="current"> หน้าปัจจุบัน</label>
+                            <label class="print-inline"><input type="radio" name="pr-range" value="pages"> หน้า</label>
+                            <input id="pr-pages" class="inline-text" type="text" autocomplete="off" placeholder="1-3, 5" aria-label="หน้าที่จะพิมพ์">
+                        </div>
+                        <div class="print-row">
+                            <label class="print-inline"><span>เฉพาะ</span>
+                                <select id="pr-subset">
+                                    <option value="all">All pages in range</option>
+                                    <option value="odd">Odd pages only</option>
+                                    <option value="even">Even pages only</option>
+                                </select>
+                            </label>
+                            <label class="print-inline"><input type="checkbox" id="pr-reverse"> ย้อนจากหน้าสุดท้าย</label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="option-group">
+                        <legend>ขนาดและการจัดหน้า</legend>
+                        <div class="print-row">
+                            <label class="print-inline"><span>ขนาด</span>
+                                <select id="pr-sizing">
+                                    <option value="fit">Fit</option>
+                                    <option value="actual">Actual size</option>
+                                    <option value="shrink">Shrink oversized pages</option>
+                                    <option value="custom">Custom scale</option>
+                                </select>
+                            </label>
+                            <label class="print-inline" id="pr-scale-field"><input id="pr-scale" class="inline-number" type="number" min="1" max="1000" value="100" aria-label="สเกล"> %</label>
+                        </div>
+                        <div class="print-row">
+                            <label class="print-inline"><span>กระดาษ</span>
+                                <select id="pr-paper">
+                                    <option value="A4">A4</option>
+                                    <option value="A3">A3</option>
+                                    <option value="A5">A5</option>
+                                    <option value="Letter">Letter</option>
+                                    <option value="Legal">Legal</option>
+                                </select>
+                            </label>
+                            <label class="print-inline"><span>แนว</span>
+                                <select id="pr-orientation">
+                                    <option value="auto">Auto portrait/landscape</option>
+                                    <option value="portrait">Portrait</option>
+                                    <option value="landscape">Landscape</option>
+                                </select>
+                            </label>
+                        </div>
+                        <div class="print-row">
+                            <label class="print-inline"><input type="checkbox" id="pr-duplex"> พิมพ์สองหน้า</label>
+                            <label class="print-inline" id="pr-flip-field">
+                                <select id="pr-flip" aria-label="พลิกกระดาษ">
+                                    <option value="longEdge">Flip on long edge</option>
+                                    <option value="shortEdge">Flip on short edge</option>
+                                </select>
+                            </label>
+                        </div>
+                    </fieldset>
+                </div>
+
+                <div class="print-preview">
+                    <p class="print-preview-info" id="pr-scale-info"></p>
+                    <div class="print-preview-box"><canvas id="pr-canvas"></canvas></div>
+                    <p class="print-preview-info" id="pr-paper-info"></p>
+                    <div class="print-preview-nav">
+                        <button type="button" class="icon-button" id="pr-prev" title="Previous sheet" aria-label="Previous sheet"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-chevron-left"></use></svg></button>
+                        <span id="pr-sheet-info"></span>
+                        <button type="button" class="icon-button" id="pr-next" title="Next sheet" aria-label="Next sheet"><svg class="icon" aria-hidden="true"><use href="img/icons.svg#i-chevron-right"></use></svg></button>
+                    </div>
+                </div>
+            </div>
+            <p class="dialog-error" data-error hidden></p>
+            <div class="dialog-actions">
+                <span class="spacer"></span>
+                <button value="cancel" class="secondary" formnovalidate>Cancel</button>
+                <button value="ok" class="primary">Print</button>
+            </div>
+        </form>
+    </dialog>
+
     <dialog id="dlg-progress">
         <h2 id="dlg-progress-title"></h2>
         <progress id="dlg-progress-bar" max="1" value="0"></progress>

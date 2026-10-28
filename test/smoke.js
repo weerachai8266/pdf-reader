@@ -36,8 +36,10 @@ dialog.showOpenDialog = async () => {
 // Printing is redirected to a PDF file so the test can inspect the job
 // without a printer or the Windows print dialog.
 const printOut = path.join(outDir, 'printed.pdf');
+let lastPrintOptions = null;
 app.on('web-contents-created', (_e, wc) => {
-    wc.print = (_options, callback) => {
+    wc.print = (options, callback) => {
+        lastPrintOptions = options;
         wc.printToPDF({ margins: { marginType: 'none' }, pageSize: 'A4' }).then((buf) => {
             fs.writeFileSync(printOut, buf);
             callback(true, '');
@@ -171,13 +173,11 @@ async function run() {
         fs.writeFileSync(path.join(outDir, 'reopened.png'), (await win.capturePage()).toPNG());
     }
 
-    // SMOKE_ONLY=doctools|convert|editing|digsig skips the slower earlier suites while iterating.
-    if (!process.env.SMOKE_ONLY) {
-        await testForms(win, js);
-        await testPrint(win, js);
-        await testOcr(win, js);
-    }
+    // SMOKE_ONLY=print|doctools|convert|editing|digsig skips the slower other suites while iterating.
     const only = process.env.SMOKE_ONLY;
+    if (!only) await testForms(win, js);
+    if (!only || only === 'print') await testPrint(win, js);
+    if (!only) await testOcr(win, js);
     if (!only || only === 'doctools') await require('./doctools.js')({
         win, js, check, waitFor, sleep, outDir, inputPdf,
         setSavePath: (file) => { nextSavePath = file; },
@@ -324,20 +324,70 @@ async function testPrint(win, js) {
     // saved.pdf: 2 pages, page 1 rotated to landscape, with highlight + note.
     win.webContents.send('file:opened', { path: savedPdf, name: 'saved.pdf', data: new Uint8Array(fs.readFileSync(savedPdf)) });
     await waitFor(win, `document.getElementById('file-name').textContent === 'saved.pdf' && !!document.querySelector('.page canvas')`);
-    await js(`document.querySelector('[data-action="print"]').click()`);
-    let printed = false;
-    for (let t = 0; t < 150 && !printed; t++) {
-        printed = fs.existsSync(printOut) && fs.statSync(printOut).size > 0;
-        await sleep(200);
-    }
-    check('print job produced', printed);
-    if (printed) {
+    const waitPrinted = async () => {
+        for (let t = 0; t < 150; t++) {
+            if (fs.existsSync(printOut) && fs.statSync(printOut).size > 0) {
+                await sleep(300);
+                return true;
+            }
+            await sleep(200);
+        }
+        return false;
+    };
+    const sheets = async () => {
         const { PDFDocument } = await import('pdf-lib');
-        await sleep(300);
-        const doc = await PDFDocument.load(fs.readFileSync(printOut));
-        check('print has one sheet per page', doc.getPageCount() === 2, String(doc.getPageCount()));
-    }
+        return (await PDFDocument.load(fs.readFileSync(printOut))).getPageCount();
+    };
+
+    // ---- the Print dialog: printers, preview, all pages ----
+    await js(`document.querySelector('[data-action="print"]').click()`);
+    check('print dialog opens', await waitFor(win, `document.getElementById('dlg-print').open`, 20000));
+    const printers = await js(`[...document.querySelectorAll('#pr-printer option')].map((o) => o.value)`);
+    check('printers listed', printers.length > 0, printers.join(' | '));
+    check('preview drawn', await waitFor(win, `document.getElementById('pr-canvas').width > 0 && /แผ่นที่ 1 จาก 2/.test(document.getElementById('pr-sheet-info').textContent)`, 10000),
+        await js(`document.getElementById('pr-sheet-info').textContent`));
+    check('landscape page previewed on a landscape sheet', await js(`(() => { const c = document.getElementById('pr-canvas'); return c.width > c.height; })()`));
+    await sleep(400);
+    fs.writeFileSync(path.join(outDir, 'print-dialog.png'), (await win.capturePage()).toPNG());
+    const chosen = await js(`document.getElementById('pr-printer').value`);
+    await js(`document.querySelector('#dlg-print button[value="ok"]').click()`);
+    check('print job produced', await waitPrinted());
+    if (fs.existsSync(printOut)) check('print has one sheet per page', (await sheets()) === 2, String(await sheets()));
+    check('job sent silently to the chosen printer', lastPrintOptions?.silent === true && lastPrintOptions?.deviceName === chosen, JSON.stringify(lastPrintOptions));
+    check('A4 paper requested', Math.abs((lastPrintOptions?.pageSize?.width || 0) - 210000) < 200, JSON.stringify(lastPrintOptions?.pageSize));
     check('app not busy after print', await waitFor(win, `!document.body.classList.contains('is-busy')`));
+
+    // ---- page 2 only, 2 copies, grayscale, both sides ----
+    fs.rmSync(printOut, { force: true });
+    await js(`document.querySelector('[data-action="print"]').click()`);
+    await waitFor(win, `document.getElementById('dlg-print').open && document.getElementById('pr-canvas').width > 0`, 20000);
+    await js(`(() => {
+        const pages = document.getElementById('pr-pages');
+        pages.value = '2';
+        pages.dispatchEvent(new Event('input', { bubbles: true }));
+        document.getElementById('pr-copies').value = '2';
+        document.getElementById('pr-gray').checked = true;
+        document.getElementById('pr-duplex').checked = true;
+        document.getElementById('pr-duplex').dispatchEvent(new Event('change', { bubbles: true }));
+    })()`);
+    check('preview follows the page range', await waitFor(win, `document.getElementById('pr-sheet-info').textContent.includes('แผ่นที่ 1 จาก 1 (หน้า 2)')`, 10000),
+        await js(`document.getElementById('pr-sheet-info').textContent`));
+    check('flip option shown for two-sided printing', await js(`!document.getElementById('pr-flip-field').hidden`));
+    await js(`document.querySelector('#dlg-print button[value="ok"]').click()`);
+    check('page range job produced', await waitPrinted());
+    if (fs.existsSync(printOut)) check('only page 2 printed', (await sheets()) === 1, String(await sheets()));
+    check('copies, grayscale and duplex passed to the printer',
+        lastPrintOptions?.copies === 2 && lastPrintOptions?.color === false && lastPrintOptions?.duplexMode === 'longEdge', JSON.stringify(lastPrintOptions));
+
+    // ---- a bad range keeps the dialog open ----
+    await js(`document.querySelector('[data-action="print"]').click()`);
+    await waitFor(win, `document.getElementById('dlg-print').open`, 20000);
+    await js(`(() => { const p = document.getElementById('pr-pages'); p.value = '5-9'; p.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+    await js(`document.querySelector('#dlg-print button[value="ok"]').click()`);
+    await sleep(300);
+    check('invalid page range is refused', await js(`document.getElementById('dlg-print').open && !document.querySelector('#dlg-print [data-error]').hidden`));
+    await js(`document.querySelector('#dlg-print button[value="cancel"]').click()`);
+    check('cancel closes the print dialog', await waitFor(win, `!document.getElementById('dlg-print').open`));
 }
 
 // An image-only PDF, like a scanner produces: Thai + English text drawn

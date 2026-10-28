@@ -290,3 +290,141 @@ dialog h3 {
     background: var(--danger);
     border-color: var(--danger);
 }
+
+/* ---- Print: options on the left, sheet preview on the right ---- */
+
+dialog.dialog-print {
+    width: min(860px, calc(100vw - 32px));
+}
+
+.print-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 20px;
+}
+
+.print-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
+.print-options .option-group {
+    gap: 10px;
+    margin: 0;
+}
+
+.print-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+}
+
+.print-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--fs-sm);
+}
+
+.print-inline > span {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.print-inline[hidden] {
+    display: none;
+}
+
+.print-grow {
+    flex: 1;
+    min-width: 0;
+}
+
+.print-grow select {
+    flex: 1;
+    min-width: 0;
+}
+
+.print-options select {
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+}
+
+.print-options .inline-number,
+.print-options .inline-text {
+    padding: 5px 8px;
+}
+
+.print-row > button,
+.icon-button {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    font-size: var(--fs-sm);
+}
+
+.icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+}
+
+.icon-button:disabled {
+    opacity: 0.45;
+}
+
+.inline-text {
+    width: 9em;
+    padding: 2px 6px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+}
+
+.print-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.print-preview-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 380px;
+    border-radius: var(--radius);
+    background: var(--surface-2);
+}
+
+#pr-canvas {
+    box-shadow: var(--shadow);
+    background: #fff;
+}
+
+.print-preview-info {
+    margin: 0;
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+}
+
+.print-preview-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: var(--fs-sm);
+}
+
+@media (max-width: 760px) {
+    .print-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
