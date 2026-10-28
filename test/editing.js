@@ -76,6 +76,50 @@ module.exports = async function testEditing(t) {
     // "quick brown" is still on pages 2 and 3; only page 1 was edited.
     check('edits survive save and reopen', counts.join() === '1,2,1', counts.join());
 
+    // ---- original font kept (v0.13) -------------------------------------------------------
+    await open(inputPdf);
+    await js(`document.querySelector('[data-tool="select"]').click(); document.querySelector('[data-tool="edit"]').click(); document.getElementById('viewer').scrollTop = 0`);
+    await sleep(500);
+    // Font resources of page 1 in the open document.
+    const pageFonts = () => js(`(async () => {
+        const { state } = await import('./js/docstate.js');
+        const { loadSourceDoc } = await import('./js/save.js');
+        const [src] = state.sources.values();
+        const { doc, lib } = await loadSourceDoc(src);
+        const fonts = doc.getPages()[0].node.Resources().lookup(lib.PDFName.of('Font'), lib.PDFDict);
+        return fonts.keys().length;
+    })()`);
+    const fontsBefore = await pageFonts();
+    const spanHeight = (page, needle) => js(`(() => { const s = [...document.querySelectorAll('.page')[${page}].querySelectorAll('.textLayer span')].find((x) => x.textContent.includes(${JSON.stringify(needle)})); return s ? s.getBoundingClientRect().height : 0; })()`);
+    const refHeight = await spanHeight(1, 'quick brown');
+    await js(`[...document.querySelectorAll('.page')[0].querySelectorAll('.textLayer span')].find((s) => s.textContent.includes('quick brown')).click()`);
+    await waitFor(win, `!!document.querySelector('.edit-box textarea')`, 15000);
+    check('editor offers the original font first', await js(`(() => { const sel = document.querySelector('.edit-box select'); return sel.value === 'original' && /Tahoma/.test(sel.options[0].textContent); })()`),
+        await js(`document.querySelector('.edit-box select')?.options[0]?.textContent`));
+    await js(`(() => { const a = document.querySelector('.edit-box textarea'); a.value = 'The lazy brown dog was quick';
+        a.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); })()`);
+    check('edited with the original font', await waitRerender('lazy brown dog was quick'), (await firstPageText()).slice(-80));
+    check('no extra font embedded for the edit', (await pageFonts()) === fontsBefore, `${fontsBefore} -> ${await pageFonts()}`);
+    await sleep(500);
+    const newHeight = await spanHeight(0, 'lazy brown dog');
+    check('edited line keeps the original size', refHeight > 0 && Math.abs(newHeight - refHeight) / refHeight < 0.08, `${refHeight} vs ${newHeight}`);
+    fs.writeFileSync(path.join(outDir, 'edited-original-font.png'), (await win.capturePage()).toPNG());
+
+    // Characters the subset doesn't have: the same font from Windows.
+    await js(`[...document.querySelectorAll('.page')[0].querySelectorAll('.textLayer span')].find((s) => s.textContent.includes('lazy brown')).click()`);
+    await waitFor(win, `!!document.querySelector('.edit-box textarea')`, 15000);
+    await js(`(() => { const a = document.querySelector('.edit-box textarea'); a.value = 'XYZ ตัวอักษรใหม่ 2026';
+        a.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); })()`);
+    check('missing characters fall back to the installed font', await waitFor(win, `/ใช้ฟอนต์ Tahoma จากเครื่องแทน/.test(document.getElementById('toast').textContent)`, 15000),
+        await js(`document.getElementById('toast').textContent`));
+    check('fallback text drawn', await waitRerender('2026'));
+    await js(`document.querySelector('[data-tool="select"]').click()`);
+
+    // Font name matching (main process).
+    const { normalize } = require('../main/fontfind.js');
+    check('PDF font names match installed names', normalize('TimesNewRomanPS-BoldMT') === normalize('Times New Roman Bold (TrueType)')
+        && normalize('ABCDEF+THSarabunNew-Bold') === normalize('TH Sarabun New Bold') && normalize('ArialMT') === normalize('Arial'));
+
     // ---- images: move and delete ----------------------------------------------------------------
     const picture = path.join(outDir, 'picture.pdf');
     await makePicturePdf(picture, sleep);

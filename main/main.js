@@ -9,6 +9,7 @@ const { buildMenu } = require('./menu');
 const { initPrint } = require('./print');
 const { initConvert } = require('./convert');
 const { initDigsig } = require('./digsig');
+const { initFontFind } = require('./fontfind');
 const tabs = require('./tabs');
 
 const APP_ROOT = path.join(__dirname, '..');
@@ -191,6 +192,7 @@ if (!gotLock) {
         initPrint();
         initConvert(tabs.getWindow);
         initDigsig(tabs.getWindow);
+        initFontFind();
         const updater = initUpdater(tabs.getWindow, (channel, value) => tabs.allContents().forEach((wc) => wc.send(channel, value)));
         buildMenu(tabs.getWindow, { getContents: tabs.activeContents, tabs, checkForUpdates: () => updater.checkNow() });
     });

@@ -1,8 +1,11 @@
 // Edit mode (Tools > Edit Text & Images, toolbar pencil) and Add Text.
 //
 // - Click a line of text: an editor opens on it with the line's text, size,
-//   colour and a matching font. On commit the old glyphs are removed from
-//   the page content (contentedit.js) and the new text is drawn in place.
+//   colour and its original font. On commit the old glyphs are removed from
+//   the page content (contentedit.js) and the new text is drawn in place:
+//   with the font already in the PDF when it has every character typed
+//   (fontreuse.js), else with the same font installed on this PC, else with
+//   the closest of the fonts below.
 // - Click an image: drag to move, drag the corner to resize, Delete to
 //   remove, or Replace it with another picture.
 // - Add Text: click anywhere and type.
@@ -17,6 +20,7 @@ import { getTool, setTool, placeImage } from './annotate.js';
 import { loadPdf } from './pdfjs.js';
 import { loadSourceDoc, embedFontBytes } from './save.js';
 import { parseContent, interpret, fontInfo, glyphsInRect, removeGlyphs, rebuild, describeGlyphs, mul, invert, apply } from './contentedit.js';
+import { fontEncoder, textOperators } from './fontreuse.js';
 import { cleanCopiedText } from './thai.js';
 import { icon } from './icons.js';
 import { toast } from './dialog.js';
@@ -95,7 +99,8 @@ async function pageModel(src, index) {
     };
     const isImage = (name) => xobjects?.lookup(PDFName.of(name))?.dict?.get(PDFName.of('Subtype')) === PDFName.of('Image');
     const { glyphs, images } = interpret(ops, { fontFor, isImage });
-    return { lib, doc, page, s, ops, glyphs, images };
+    const fontDict = (name) => (name && fonts?.lookupMaybe(PDFName.of(name), PDFDict)) || null;
+    return { lib, doc, page, s, ops, glyphs, images, fontDict };
 }
 
 function setContent(model, text) {
@@ -251,7 +256,15 @@ async function openTextEditor(view, span) {
         return;
     }
     const info = describeGlyphs(glyphs);
-    const guess = guessFont(info.baseFont);
+    const original = dominantFont(glyphs);
+    const guess = guessFont(original.baseFont);
+    // The same font installed on this PC: previews the original look, and
+    // is the fallback when the embedded subset lacks a typed character.
+    const system = await window.host.findFont(original.baseFont, guess.bold).catch(() => null);
+    const guessCss = FONTS.find((f) => f.key === guess.key).css;
+    original.css = system ? `'${system.name.replace(/'/g, '')}', ${guessCss}` : guessCss;
+    original.system = system;
+    original.guess = guess.key;
     showEditor(view, {
         mode: 'edit',
         rect,
@@ -261,9 +274,20 @@ async function openTextEditor(view, span) {
         angle: info.angle,
         size: info.size,
         color: info.color,
-        font: guess.key,
+        font: 'original',
         bold: guess.bold,
+        original,
     });
+}
+
+// The font most of the line is drawn with (a bold word in a regular line
+// doesn't decide it).
+function dominantFont(glyphs) {
+    const count = new Map();
+    for (const g of glyphs) count.set(g.fontName, (count.get(g.fontName) || 0) + 1);
+    const fontName = [...count].sort((a, b) => b[1] - a[1])[0][0];
+    const g = glyphs.find((x) => x.fontName === fontName);
+    return { fontName, baseFont: g.font.baseFont || fontName, hScale: g.Th || 1 };
 }
 
 function openAddText(view, x, y) {
@@ -301,6 +325,7 @@ function showEditor(view, opts) {
     bar.className = 'edit-bar';
     const font = document.createElement('select');
     font.title = 'Font';
+    if (opts.original) font.append(new Option(`Original (${opts.original.baseFont})`, 'original', false, true));
     for (const f of FONTS) font.append(new Option(f.label, f.key, false, f.key === opts.font));
     const size = document.createElement('input');
     size.type = 'number';
@@ -335,8 +360,7 @@ function showEditor(view, opts) {
     area.rows = Math.max(1, opts.text.split('\n').length);
     area.spellcheck = false;
     const applyLook = () => {
-        const f = FONTS.find((x) => x.key === font.value);
-        area.style.fontFamily = f.css;
+        area.style.fontFamily = font.value === 'original' ? opts.original.css : FONTS.find((x) => x.key === font.value).css;
         area.style.fontSize = `${Number(size.value) * scale}px`;
         area.style.fontWeight = bold.getAttribute('aria-pressed') === 'true' ? '700' : '400';
         area.style.color = color.value;
@@ -388,7 +412,8 @@ async function closeEditor(commit) {
     const text = ed.area.value.replace(/\s+$/g, '');
     const settings = {
         font: ed.font.value,
-        size: Number(ed.size.value) || ed.opts.size,
+        // The box shows the size rounded to 0.5 pt; untouched, keep the exact one.
+        size: Math.abs(Number(ed.size.value) - ed.opts.size) < 0.26 ? ed.opts.size : Number(ed.size.value) || ed.opts.size,
         bold: ed.bold.getAttribute('aria-pressed') === 'true',
         color: fromHex(ed.color.value),
     };
@@ -408,27 +433,74 @@ async function applyText(view, opts, text, settings) {
     const src = state.sources.get(view.entry.srcId);
     const model = await pageModel(src, view.entry.index);
     const { lib, page } = model;
+    let body = model.s;
     if (opts.mode === 'edit') {
         const removed = glyphsInRect(model.glyphs, opts.rect);
-        setContent(model, rebuild(model.s, model.ops, removeGlyphs(model.ops, removed)));
+        body = rebuild(model.s, model.ops, removeGlyphs(model.ops, removed));
+        setContent(model, body);
+    }
+    if (text && settings.font === 'original') {
+        const ops = originalFontOps(model, opts, text, settings);
+        if (ops) {
+            // The old content is wrapped so any graphics state it leaves
+            // open can't move the new line.
+            setContent(model, `q\n${body}\nQ\n${ops}`);
+            await commitModel(src, model, 'แก้ข้อความ');
+            return;
+        }
+        const system = settings.bold === opts.bold ? opts.original.system : await window.host.findFont(opts.original.baseFont, settings.bold);
+        if (system) {
+            toast(`บางตัวอักษรไม่มีในฟอนต์ที่ฝังในไฟล์ ใช้ฟอนต์ ${system.name} จากเครื่องแทน`);
+            drawWith(lib, page, await embedFontBytes(model.doc, system.bytes), opts, text, settings);
+            await commitModel(src, model, 'แก้ข้อความ');
+            return;
+        }
+        toast(`ไม่พบฟอนต์ ${opts.original.baseFont} ในเครื่อง ใช้ฟอนต์ใกล้เคียงแทน`);
+        settings = { ...settings, font: opts.original.guess };
     }
     if (text) {
         let key = settings.font;
         if (THAI.test(text) && !FONTS.find((f) => f.key === key).thai) key = 'tahoma';
         const bytes = (await window.host.editFont(settings.bold ? `${key}-bold` : key)) || (await window.host.editFont(key)) || (await window.host.thaiFont());
         if (!bytes) throw new Error('ไม่พบฟอนต์ในเครื่อง');
-        const font = await embedFontBytes(model.doc, bytes);
-        page.drawText(text, {
-            x: opts.origin[0],
-            y: opts.origin[1],
-            size: settings.size,
-            font,
-            color: lib.rgb(...settings.color),
-            rotate: lib.radians(opts.angle),
-            lineHeight: settings.size * 1.25,
-        });
+        drawWith(lib, page, await embedFontBytes(model.doc, bytes), opts, text, settings);
     }
     await commitModel(src, model, opts.mode === 'edit' ? 'แก้ข้อความ' : 'เพิ่มข้อความ');
+}
+
+function drawWith(lib, page, font, opts, text, settings) {
+    page.drawText(text, {
+        x: opts.origin[0],
+        y: opts.origin[1],
+        size: settings.size,
+        font,
+        color: lib.rgb(...settings.color),
+        rotate: lib.radians(opts.angle),
+        lineHeight: settings.size * 1.25,
+    });
+}
+
+// Operators drawing `text` with the line's own font resource, or null when
+// the font can't write it (missing characters, bold switched on or off).
+function originalFontOps(model, opts, text, settings) {
+    const { fontName, hScale } = opts.original;
+    if (settings.bold !== opts.bold) return null;
+    const dict = model.fontDict(fontName);
+    const g = model.glyphs.find((x) => x.fontName === fontName);
+    const encoder = dict && g && fontEncoder(model.lib, dict, g.font, model.glyphs, fontName);
+    if (!encoder) return null;
+    const lines = text.split('\n').map((line) => encoder.encode(line));
+    if (lines.some((l) => !l)) return null;
+    return textOperators({
+        fontName,
+        codeLen: encoder.codeLen,
+        lines,
+        origin: opts.origin,
+        angle: opts.angle,
+        size: settings.size,
+        hScale,
+        color: settings.color,
+    });
 }
 
 // ---- images -------------------------------------------------------------------------------
