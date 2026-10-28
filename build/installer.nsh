@@ -18,7 +18,7 @@
 
   ${ifNot} ${Silent}
   ${andIfNot} ${isUpdated}
-    MessageBox MB_YESNO|MB_ICONQUESTION "ต้องการตั้ง PDF Reader เป็นโปรแกรมเริ่มต้นสำหรับเปิดไฟล์ PDF หรือไม่$\r$\n$\r$\nถ้าเลือก Yes จะเปิดหน้า Settings ของ Windows ให้กดปุ่ม Set default" /SD IDNO IDNO skipDefaultApp
+    MessageBox MB_YESNO|MB_ICONQUESTION "ต้องการตั้ง PDF Reader เป็นโปรแกรมเริ่มต้นสำหรับเปิดไฟล์ PDF หรือไม่$\r$\n$\r$\nถ้าเลือก Yes จะเปิดหน้า Settings ของ Windows ให้คลิกช่องใต้ .pdf แล้วเลือก PDF Reader และกด Set default" /SD IDNO IDNO skipDefaultApp
       ${if} $installMode == "all"
         ExecShell "open" "ms-settings:defaultapps?registeredAppMachine=PDF%20Reader"
       ${else}

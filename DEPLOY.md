@@ -41,7 +41,7 @@ PDF-Reader-Setup-0.2.0.exe /S /allusers
 
 ### ตั้งให้เปิด PDF ด้วยโปรแกรมนี้เป็นค่าเริ่มต้น
 
-ตัวติดตั้งลงทะเบียนโปรแกรมไว้ใน Settings → Apps → Default apps ของ Windows แล้ว ถ้าติดตั้งแบบมีหน้าต่าง (ไม่ใช่ `/S`) และไม่ใช่การติดตั้งทับเวอร์ชันเดิม ตัวติดตั้งจะถามว่าจะตั้งเป็นโปรแกรมเริ่มต้นสำหรับ PDF ไหม ถ้าตอบ Yes จะเปิดหน้า Settings ของ PDF Reader ให้ผู้ใช้กดปุ่ม **Set default** เอง ตั้งแต่ Windows 10 เป็นต้นมา โปรแกรมติดตั้งไม่มีสิทธิ์ตั้งโปรแกรมเริ่มต้นแทนผู้ใช้ ส่วนการติดตั้งแบบเงียบจะไม่ถามอะไรเลย ถ้าต้องการบังคับทั้งองค์กร ให้ใช้ GPO ที่ *Computer Configuration → Administrative Templates → Windows Components → File Explorer → Set a default associations configuration file* แล้วชี้ไปที่ไฟล์ XML ที่มีบรรทัดนี้
+ตัวติดตั้งลงทะเบียนโปรแกรมไว้ใน Settings → Apps → Default apps ของ Windows แล้ว ถ้าติดตั้งแบบมีหน้าต่าง (ไม่ใช่ `/S`) และไม่ใช่การติดตั้งทับเวอร์ชันเดิม ตัวติดตั้งจะถามว่าจะตั้งเป็นโปรแกรมเริ่มต้นสำหรับ PDF ไหม ถ้าตอบ Yes จะเปิดหน้า Settings → Default apps → PDF Reader ให้ผู้ใช้คลิกช่องใต้ `.pdf` (ที่แสดงโปรแกรมปัจจุบัน เช่น Adobe Acrobat) แล้วเลือก PDF Reader และกด **Set default** ตั้งแต่ Windows 10 เป็นต้นมา โปรแกรมติดตั้งไม่มีสิทธิ์ตั้งโปรแกรมเริ่มต้นแทนผู้ใช้ ส่วนการติดตั้งแบบเงียบจะไม่ถามอะไรเลย ถ้าต้องการบังคับทั้งองค์กร ให้ใช้ GPO ที่ *Computer Configuration → Administrative Templates → Windows Components → File Explorer → Set a default associations configuration file* แล้วชี้ไปที่ไฟล์ XML ที่มีบรรทัดนี้
 ```xml
 <Association Identifier=".pdf" ProgId="PDF Document" ApplicationName="PDF Reader" />
 ```
