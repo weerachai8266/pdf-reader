@@ -8,8 +8,12 @@
 //   1. update.json next to the installed exe  — IT can change it per site
 //      without rebuilding
 //   2. config/update.json bundled in the app   — default for every install
+//
+// The server uses a self-signed certificate (it is a private IP), so the
+// config lists that certificate's fingerprint in `pinnedCertSha256` and only
+// that certificate is accepted for the update host.
 
-const { app, ipcMain, dialog } = require('electron');
+const { app, ipcMain, dialog, session } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 
@@ -76,6 +80,27 @@ function dropStaleBlockmap(log) {
     }
 }
 
+// Accepts exactly the pinned certificate(s) for the update host, on the
+// session electron-updater uses (NET_SESSION_NAME in its electronHttpExecutor).
+// Other hosts keep Chromium's normal verification.
+function pinCertificate(cfg, log) {
+    const pins = Array.isArray(cfg.pinnedCertSha256) ? cfg.pinnedCertSha256 : [];
+    const url = new URL(cfg.url.trim());
+    if (url.protocol !== 'https:' || !pins.length) return;
+    // Electron reports 'sha256/<base64>'; openssl prints '28:8A:F6:...'.
+    const normal = (fp) => {
+        const s = String(fp).trim().replace(/^sha256\//i, '').replace(/^sha256 Fingerprint=/i, '');
+        return /^([0-9a-f]{2}:){31}[0-9a-f]{2}$/i.test(s) ? Buffer.from(s.replace(/:/g, ''), 'hex').toString('base64') : s;
+    };
+    const allowed = new Set(pins.map(normal));
+    session.fromPartition('electron-updater', { cache: false }).setCertificateVerifyProc((req, callback) => {
+        if (req.hostname !== url.hostname) return callback(-3);
+        if (allowed.has(normal(req.certificate.fingerprint))) return callback(0);
+        log.error(`rejected certificate for ${req.hostname}: ${req.certificate.fingerprint}`);
+        return callback(-2);
+    });
+}
+
 // Returns { checkNow } for the Help > Check for Updates menu item.
 // broadcast(channel, value): to every document tab.
 function initUpdater(getWindow, broadcast) {
@@ -101,6 +126,7 @@ function initUpdater(getWindow, broadcast) {
     autoUpdater.logger = log;
     log.info(`v${app.getVersion()} feed ${cfg.url.trim()} (from ${cfg.source})`);
     dropStaleBlockmap(log);
+    pinCertificate(cfg, log);
     // One range per request: electron-updater joins multiple ranges with ", "
     // and Apache 2.4 (our server) answers that with the whole 250 MB file,
     // which silently turns every differential update into a full download.

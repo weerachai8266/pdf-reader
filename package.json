@@ -1,7 +1,7 @@
 {
   "name": "pdf-reader",
   "productName": "PDF Reader",
-  "version": "0.15.5",
+  "version": "0.16.1",
   "description": "เนเธเธฃเนเธเธฃเธกเธญเนเธฒเธ PDF เธ—เธตเนเน€เธเธฒ เน€เธฃเนเธง เธฃเธญเธเธฃเธฑเธเธ เธฒเธฉเธฒเนเธ—เธข เนเธฎเนเธฅเธ•เน เธเธญเธกเน€เธกเธเธ•เน เน€เธเนเธ เนเธฅเธฐเธเธฑเธ”เธเธฒเธฃเธซเธเนเธฒเนเธ”เนเธเธฃเธต",
   "author": "PDF Reader",
   "main": "main/main.js",
@@ -76,7 +76,7 @@
     "publish": [
       {
         "provider": "generic",
-        "url": "http://192.168.0.44/pdf-reader/",
+        "url": "https://192.168.0.44/pdf-reader/",
         "useMultipleRangeRequest": false
       }
     ],

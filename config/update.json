@@ -1,4 +1,7 @@
 {
-    "url": "http://192.168.0.44/pdf-reader/",
+    "url": "https://192.168.0.44/pdf-reader/",
+    "pinnedCertSha256": [
+        "28:8A:F6:26:15:04:24:3B:22:76:8A:04:51:E1:AB:EF:34:26:BC:DE:67:6E:DE:11:24:4E:26:E3:F4:E3:36:12"
+    ],
     "checkIntervalHours": 4
 }

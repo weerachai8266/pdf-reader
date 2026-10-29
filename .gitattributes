@@ -1,0 +1,2 @@
+# Shell scripts run on the Linux update server.
+*.sh text eol=lf
