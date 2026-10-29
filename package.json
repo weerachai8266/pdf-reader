@@ -1,7 +1,7 @@
 {
   "name": "pdf-reader",
   "productName": "PDF Reader",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "โปรแกรมอ่าน PDF ที่เบา เร็ว รองรับภาษาไทย ไฮไลต์ คอมเมนต์ เซ็น และจัดการหน้าได้ฟรี",
   "author": "PDF Reader",
   "main": "main/main.js",
@@ -11,7 +11,8 @@
     "dev": "electron . --devtools",
     "test": "electron test/smoke.js",
     "icons": "electron tools/make-icons.js",
-    "dist": "electron-builder --win nsis --x64 --publish never"
+    "dist": "electron-builder --win nsis --x64 --publish never",
+    "publish:update": "powershell -ExecutionPolicy Bypass -File tools/publish-update.ps1"
   },
   "license": "UNLICENSED",
   "type": "commonjs",
@@ -75,7 +76,7 @@
     "publish": [
       {
         "provider": "generic",
-        "url": "https://updates.invalid/pdf-reader/"
+        "url": "http://192.168.0.44/pdf-reader/"
       }
     ],
     "win": {
