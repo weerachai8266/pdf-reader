@@ -254,23 +254,22 @@ kbd {
     border-color: var(--text);
 }
 
-.toolbar .swatch-yellow,
-.toolbar .swatch-yellow:hover:not(:disabled) { background: #ffe33b; }
-.toolbar .swatch-green,
-.toolbar .swatch-green:hover:not(:disabled) { background: #8de673; }
-.toolbar .swatch-pink,
-.toolbar .swatch-pink:hover:not(:disabled) { background: #ff8cbf; }
-.toolbar .swatch-blue,
-.toolbar .swatch-blue:hover:not(:disabled) { background: #80c8ff; }
+.swatch-yellow { --swatch: #ffe33b; }
+.swatch-green { --swatch: #8de673; }
+.swatch-pink { --swatch: #ff8cbf; }
+.swatch-blue { --swatch: #80c8ff; }
+.swatch-ink-red { --swatch: var(--ink-red); }
+.swatch-ink-blue { --swatch: var(--ink-blue); }
+.swatch-ink-green { --swatch: var(--ink-green); }
+.swatch-ink-black { --swatch: var(--ink-black); }
 
-.toolbar .swatch-ink-red,
-.toolbar .swatch-ink-red:hover:not(:disabled) { background: var(--ink-red); }
-.toolbar .swatch-ink-blue,
-.toolbar .swatch-ink-blue:hover:not(:disabled) { background: var(--ink-blue); }
-.toolbar .swatch-ink-green,
-.toolbar .swatch-ink-green:hover:not(:disabled) { background: var(--ink-green); }
-.toolbar .swatch-ink-black,
-.toolbar .swatch-ink-black:hover:not(:disabled) { background: var(--ink-black); }
+/* Must outrank `.toolbar button[aria-pressed='true']` and the button hover
+   rule, or the selected swatch is painted with the accent tint instead. */
+.toolbar .swatch,
+.toolbar .swatch[aria-pressed='true'],
+.toolbar .swatch:hover:not(:disabled) {
+    background: var(--swatch);
+}
 
 .toolbar .swatch:hover:not(:disabled) {
     filter: brightness(0.92);
