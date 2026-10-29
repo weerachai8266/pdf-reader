@@ -145,7 +145,7 @@ node test/packaged.mjs <file.pdf> [--ocr] [--signed] [--convert <file.docx>]   #
 5. **`git add -A`, commit with a Thai message, then tag:**
    - The message ends with the attribution line from the current system reminder (currently `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`).
    - Then run `git tag -a vX.Y.Z -m "<Thai summary>"`.
-   - Nothing has been pushed yet; push only when the user asks, and state the version.
+   - Push only when the user asks, and state the version. The GitHub repo is public.
 6. **Update memory** (`pdf-reader-project.md`) with anything non-obvious learned.
 7. **Report to the user in Thai:** what changed, test results, installer path and size, limitations, and what's next.
 
@@ -171,7 +171,7 @@ node test/packaged.mjs <file.pdf> [--ocr] [--signed] [--convert <file.docx>]   #
 - Acrobat-style Print dialog (v0.10), document tabs (v0.11)
 
 **Open items to raise with the user:**
-1. **Update server**: live since v0.15.0 at `http://192.168.0.44/pdf-reader/` (Apache, `/var/www/html/pdf-reader`, ssh weerachai@). Release = `npm run dist` then `npm run publish:update`. Plain HTTP + unsigned installer: anyone who can spoof that host on the LAN can push an installer — raise HTTPS/code signing before wide rollout. Diagnose a PC with `%APPDATA%\PDF Reader\logs\updater.log`.
+1. **Update server**: live at `https://192.168.0.44/pdf-reader/` since v0.16.0 (Apache, `/var/www/html/pdf-reader`, ssh weerachai@; self-signed cert pinned in `config/update.json`, see DEPLOY.md before touching it). Release = `npm run dist`, `npm run publish:update`, then `gh release create`. Installer still unsigned. Diagnose a PC with `%APPDATA%\PDF Reader\logs\updater.log`.
 2. **Code-signing certificate**, to avoid SmartScreen warnings. Steps are in DEPLOY.md.
 3. **App name and branding**; it is still "PDF Reader".
 4. **Real organisation files:** forms (JS/XFA), scans, a physical printer.
