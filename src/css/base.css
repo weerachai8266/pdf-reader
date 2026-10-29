@@ -236,6 +236,7 @@ kbd {
 }
 
 .color-swatches {
+    position: relative;
     display: inline-flex;
     gap: 4px;
     padding: 0 4px 0 0;
@@ -262,6 +263,8 @@ kbd {
 .swatch-ink-blue { --swatch: var(--ink-blue); }
 .swatch-ink-green { --swatch: var(--ink-green); }
 .swatch-ink-black { --swatch: var(--ink-black); }
+/* Replaced by the picked colour once there is one (swatches.js). */
+.swatch-custom { --swatch: conic-gradient(#f33, #fd3, #3c5, #3cf, #36f, #c3f, #f33); }
 
 /* Must outrank `.toolbar button[aria-pressed='true']` and the button hover
    rule, or the selected swatch is painted with the accent tint instead. */
@@ -273,6 +276,20 @@ kbd {
 
 .toolbar .swatch:hover:not(:disabled) {
     filter: brightness(0.92);
+}
+
+/* The <input type=color> behind More Colors: invisible, but laid out so the
+   picker opens under the swatches. */
+.color-picker-input {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
 }
 
 /* One palette at a time: ink colours for underline, strikethrough, shapes

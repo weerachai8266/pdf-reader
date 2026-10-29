@@ -169,6 +169,8 @@
 .hl-green { background: var(--hl-green); }
 .hl-pink { background: var(--hl-pink); }
 .hl-blue { background: var(--hl-blue); }
+/* --hl is set per element by colors.js; 40% matches HIGHLIGHT_OPACITY. */
+.hl-custom { background: color-mix(in srgb, var(--hl) 40%, transparent); }
 
 .annot-note {
     position: absolute;

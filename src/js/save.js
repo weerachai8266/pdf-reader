@@ -5,7 +5,8 @@
 // when saving so it doesn't slow down startup.
 
 import { state } from './docstate.js';
-import { HIGHLIGHT_COLORS, HIGHLIGHT_OPACITY, NOTE_ICON_PX } from './config.js';
+import { HIGHLIGHT_OPACITY, NOTE_ICON_PX } from './config.js';
+import { highlightRgb } from './colors.js';
 import { optimize } from './qpdf.js';
 import { quadFrame } from './annotgeom.js';
 import { MARKUP_TYPES, drawMarkup } from './savemarkup.js';
@@ -246,7 +247,7 @@ const quadBox = quadFrame;
 // Highlights are flattened into the page as multiply-blended rectangles,
 // which every PDF viewer and printer renders identically.
 function drawHighlight(lib, page, annot) {
-    const [r, g, b] = HIGHLIGHT_COLORS[annot.color] || HIGHLIGHT_COLORS.yellow;
+    const [r, g, b] = highlightRgb(annot.color);
     for (const quad of annot.quads) {
         const box = quadBox(quad);
         page.drawRectangle({

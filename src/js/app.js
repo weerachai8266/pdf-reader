@@ -5,7 +5,8 @@ import { on } from './bus.js';
 import { loadPdf, pdfjsLib, passwordOf } from './pdfjs.js';
 import { state, resetDocument, addSource, hasDocument, setDirty, pagesChanged } from './docstate.js';
 import { initViewer, rebuild, clearViewer, setZoom, zoomIn, zoomOut, scrollToIndex, currentPageIndex } from './viewer.js';
-import { initAnnotate, setTool, setHighlightColor, setInkColor } from './annotate.js';
+import { initAnnotate, setTool } from './annotate.js';
+import { initSwatches, onSwatchClick } from './swatches.js';
 import { initSearch, focusSearch, resetSearch } from './search.js';
 import { initThumbs, resetThumbs } from './thumbs.js';
 import { initSignature, openSignatureDialog } from './signature.js';
@@ -40,6 +41,7 @@ async function init() {
     const scroller = $('viewer');
     initViewer(scroller, $('pages'));
     initAnnotate(scroller);
+    initSwatches();
     initSearch();
     initThumbs();
     initSignature();
@@ -402,19 +404,13 @@ function bindToolbar() {
         // Buttons only: <body data-tool> carries the current tool and must not
         // count as a click on a tool button.
         const btn = e.target.closest('button');
-        if (!btn || !btn.matches('[data-action], [data-tool], [data-color], [data-ink]') || btn.disabled || btn.closest('#thumbs')) return;
+        if (!btn || !btn.matches('[data-action], [data-tool], .swatch') || btn.disabled || btn.closest('#thumbs')) return;
         if (btn.dataset.action && actions[btn.dataset.action]) runCommand(btn.dataset.action);
         else if (btn.dataset.tool) {
             if (!hasDocument()) return;
             setTool(btn.dataset.tool);
             if (btn.closest('#shape-menu')) $('shape-menu').hidePopover();
-        } else if (btn.dataset.color) {
-            document.querySelectorAll('[data-color]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
-            setHighlightColor(btn.dataset.color);
-        } else if (btn.dataset.ink) {
-            document.querySelectorAll('[data-ink]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
-            setInkColor(btn.dataset.ink);
-        }
+        } else if (hasDocument()) onSwatchClick(btn);
     });
     // Keep the text selection alive when a toolbar button is pressed, so
     // "select text, then click a highlight colour" works.

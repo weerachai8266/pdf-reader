@@ -8,6 +8,7 @@
 
 import { addAnnot, annotsFor, removeAnnot, updateAnnot } from './docstate.js';
 import { SHAPE_LINE_WIDTH_PT, TEXTBOX_FONT_PT } from './config.js';
+import { paintColor } from './colors.js';
 import {
     quadToView, quadFromViewRect, placeBox, subBox, pointInPage, shiftAnnot, markLine, arrowHead,
     TEXTBOX, textboxSize, resizeQuadFromTop,
@@ -47,7 +48,8 @@ function markLines(view, annot) {
         const box = quadToView(view.viewport, quad);
         const { y0, t } = markLine(annot.type, box.h, 1);
         const el = document.createElement('div');
-        el.className = `annot-mark ink-${annot.color}`;
+        el.className = 'annot-mark';
+        paintColor(el, 'ink', annot.color);
         el.dataset.id = annot.id;
         placeBox(el, subBox(box, y0, t));
         return el;
@@ -97,7 +99,8 @@ function shapeSvg(view, annot) {
     const width = Math.max(...xs) + m - left;
     const height = Math.max(...ys) + m - top;
     const svg = document.createElementNS(SVG_NS, 'svg');
-    svg.setAttribute('class', `annot-shape ink-${annot.color}`);
+    svg.setAttribute('class', 'annot-shape');
+    paintColor(svg, 'ink', annot.color);
     svg.setAttribute('viewBox', `${left} ${top} ${width} ${height}`);
     svg.dataset.id = annot.id;
     svg.style.left = `${left}px`;
@@ -117,7 +120,8 @@ function shapeSvg(view, annot) {
 function textboxEl(view, annot) {
     const s = view.viewport.scale;
     const el = document.createElement('div');
-    el.className = `annot-textbox ink-${annot.color}`;
+    el.className = 'annot-textbox';
+    paintColor(el, 'ink', annot.color);
     el.dataset.id = annot.id;
     el.title = 'ดับเบิลคลิกเพื่อแก้ข้อความ ลากเพื่อย้าย';
     placeBox(el, quadToView(view.viewport, annot.quad));

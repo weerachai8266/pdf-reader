@@ -105,6 +105,10 @@ module.exports = async function testMarkup(t) {
     check('ink palette shown for the selected text box', await js(`document.body.dataset.tool === 'select' && getComputedStyle(document.querySelector('[data-palette="ink"]')).display !== 'none'`));
     await js(`document.querySelector('[data-ink="green"]').click()`);
     check('swatch recolours the selected text box', await waitFor(win, `document.querySelector('.annot-textbox').classList.contains('ink-green')`));
+    await js(`(() => { const i = document.querySelector('[data-pick="ink"]').nextElementSibling; i.value = '#ff8800'; i.dispatchEvent(new Event('change')); })()`);
+    check('custom colour recolours the selected text box', await waitFor(win, `getComputedStyle(document.querySelector('.annot-textbox')).color === 'rgb(255, 136, 0)'`));
+    check('custom swatch shows the picked colour', await js(`(() => { const b = document.querySelector('[data-pick="ink"]'); return b.getAttribute('aria-pressed') === 'true' && getComputedStyle(b).backgroundColor === 'rgb(255, 136, 0)'; })()`));
+    await js(`document.querySelector('[data-ink="green"]').click()`);
     check('selected swatch keeps its own colour', await js(`getComputedStyle(document.querySelector('[data-ink="green"]')).backgroundColor === 'rgb(26, 140, 51)'`));
     const before = await js(`(() => { const r = document.querySelector('.annot-textbox').getBoundingClientRect(); const p = document.querySelectorAll('.page')[0].getBoundingClientRect(); return { x: r.left - p.left, y: r.top - p.top, w: r.width, h: r.height }; })()`);
     await drag(before.x + before.w / 2, before.y + before.h / 2, before.x + before.w / 2 + 60, before.y + before.h / 2 + 30);

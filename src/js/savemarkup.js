@@ -2,14 +2,15 @@
 // page when saving. Like highlights, everything is flattened into the page
 // content, so every viewer and printer shows it the same way.
 
-import { INK_COLORS, SHAPE_LINE_WIDTH_PT } from './config.js';
+import { SHAPE_LINE_WIDTH_PT } from './config.js';
+import { inkRgb } from './colors.js';
 import { quadFrame, markLine, arrowHead, TEXTBOX } from './annotgeom.js';
 
 export const MARKUP_TYPES = new Set(['underline', 'strike', 'shape', 'textbox']);
 
 // fontFor(text): an embedded font that can draw `text`.
 export async function drawMarkup(lib, page, annot, fontFor) {
-    const color = lib.rgb(...(INK_COLORS[annot.color] || INK_COLORS.red));
+    const color = lib.rgb(...inkRgb(annot.color));
     if (annot.type === 'underline' || annot.type === 'strike') {
         for (const quad of annot.quads) {
             const f = quadFrame(quad);

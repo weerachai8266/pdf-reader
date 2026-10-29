@@ -9,7 +9,8 @@
 import { on, emit } from './bus.js';
 import { addAnnot, annotsFor, removeAnnot, updateAnnot } from './docstate.js';
 import { getView, allViews } from './viewer.js';
-import { HIGHLIGHT_COLORS, SIGNATURE_DEFAULT_WIDTH_PT } from './config.js';
+import { SIGNATURE_DEFAULT_WIDTH_PT } from './config.js';
+import { paintColor } from './colors.js';
 import { promptText } from './dialog.js';
 import { icon } from './icons.js';
 import { quadFromViewRect, quadToView, quadFromBox, placeBox, pointInPage } from './annotgeom.js';
@@ -81,7 +82,8 @@ function drawAnnots(view) {
         if (a.type === 'highlight') {
             for (const quad of a.quads) {
                 const el = document.createElement('div');
-                el.className = `annot-highlight hl-${a.color}`;
+                el.className = 'annot-highlight';
+                paintColor(el, 'hl', a.color);
                 el.dataset.id = a.id;
                 placeBox(el, quadToView(view.viewport, quad));
                 layer.append(el);
@@ -357,7 +359,4 @@ function startDrag(e, view, annot) {
     el.addEventListener('pointerup', up);
 }
 
-export function highlightRgb(color) {
-    return HIGHLIGHT_COLORS[color] || HIGHLIGHT_COLORS.yellow;
-}
 
