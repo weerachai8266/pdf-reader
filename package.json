@@ -1,8 +1,8 @@
 {
   "name": "pdf-reader",
   "productName": "PDF Reader",
-  "version": "0.15.0",
-  "description": "โปรแกรมอ่าน PDF ที่เบา เร็ว รองรับภาษาไทย ไฮไลต์ คอมเมนต์ เซ็น และจัดการหน้าได้ฟรี",
+  "version": "0.15.5",
+  "description": "เนเธเธฃเนเธเธฃเธกเธญเนเธฒเธ PDF เธ—เธตเนเน€เธเธฒ เน€เธฃเนเธง เธฃเธญเธเธฃเธฑเธเธ เธฒเธฉเธฒเนเธ—เธข เนเธฎเนเธฅเธ•เน เธเธญเธกเน€เธกเธเธ•เน เน€เธเนเธ เนเธฅเธฐเธเธฑเธ”เธเธฒเธฃเธซเธเนเธฒเนเธ”เนเธเธฃเธต",
   "author": "PDF Reader",
   "main": "main/main.js",
   "private": true,
@@ -68,7 +68,7 @@
       {
         "ext": "pdf",
         "name": "PDF Document",
-        "description": "เอกสาร PDF",
+        "description": "เน€เธญเธเธชเธฒเธฃ PDF",
         "role": "Viewer",
         "icon": "build/icon.ico"
       }
@@ -76,7 +76,8 @@
     "publish": [
       {
         "provider": "generic",
-        "url": "http://192.168.0.44/pdf-reader/"
+        "url": "http://192.168.0.44/pdf-reader/",
+        "useMultipleRangeRequest": false
       }
     ],
     "win": {

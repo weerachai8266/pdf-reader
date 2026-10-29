@@ -171,7 +171,7 @@ node test/packaged.mjs <file.pdf> [--ocr] [--signed] [--convert <file.docx>]   #
 - Acrobat-style Print dialog (v0.10), document tabs (v0.11)
 
 **Open items to raise with the user:**
-1. **Update server URL** for electron-updater. The installer has a placeholder; it is needed before rollout.
+1. **Update server**: live since v0.15.0 at `http://192.168.0.44/pdf-reader/` (Apache, `/var/www/html/pdf-reader`, ssh weerachai@). Release = `npm run dist` then `npm run publish:update`. Plain HTTP + unsigned installer: anyone who can spoof that host on the LAN can push an installer — raise HTTPS/code signing before wide rollout. Diagnose a PC with `%APPDATA%\PDF Reader\logs\updater.log`.
 2. **Code-signing certificate**, to avoid SmartScreen warnings. Steps are in DEPLOY.md.
 3. **App name and branding**; it is still "PDF Reader".
 4. **Real organisation files:** forms (JS/XFA), scans, a physical printer.
