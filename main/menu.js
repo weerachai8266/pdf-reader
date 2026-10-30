@@ -116,6 +116,7 @@ function buildMenu(getWindow, { getContents, tabs, checkForUpdates }) {
                         item('&Blank Page…', 'insert-blank'),
                     ],
                 },
+                item('&Rotate Pages…', 'rotate-pages'),
                 item('E&xtract Pages…', 'extract'),
                 item('&Split Document…', 'split'),
                 { type: 'separator' },

@@ -146,6 +146,32 @@ async function run() {
         document.getElementById('dlg-prompt-form').requestSubmit();`);
     check('note placed', await waitFor(win, `document.querySelectorAll('.annot-note').length === 1`));
 
+    // Document > Rotate Pages: an empty selection is refused; all pages, then
+    // even, then odd pages turn 180 and every page ends up where it started.
+    const rotateDialog = async (scope, range, parity) => {
+        win.webContents.send('menu:command', 'rotate-pages');
+        await waitFor(win, `document.getElementById('dlg-rotate').open`);
+        await js(`document.querySelector('input[name="rotate-scope"][value="${scope}"]').checked = true;
+            document.getElementById('rotate-range').value = '${range}';
+            document.getElementById('rotate-parity').value = '${parity}';
+            document.getElementById('rotate-direction').value = '180';
+            document.querySelector('#dlg-rotate button[value="ok"]').click();`);
+        await waitFor(win, `!document.getElementById('dlg-rotate').open`, 3000);
+    };
+    const thumbRotations = `[...document.querySelectorAll('#thumbs .thumb')].map((t) => t.dataset.rotation).join()`;
+    await rotateDialog('range', '2', 'odd');
+    check('rotate pages: empty selection refused', await waitFor(win,
+        `document.getElementById('dlg-rotate').open && !document.querySelector('#dlg-rotate [data-error]').hidden`));
+    fs.writeFileSync(path.join(outDir, 'rotate-dialog.png'), (await win.capturePage()).toPNG());
+    await js(`document.querySelector('#dlg-rotate button[value="cancel"]').click()`);
+    await waitFor(win, `!document.getElementById('dlg-rotate').open`);
+    await rotateDialog('all', '', 'all');
+    check('rotate pages: all pages 180', await waitFor(win, `${thumbRotations} === '180,180,180'`));
+    await rotateDialog('range', '1-3', 'even');
+    check('rotate pages: even pages only', await waitFor(win, `${thumbRotations} === '180,0,180'`));
+    await rotateDialog('range', '1-3', 'odd');
+    check('rotate pages: back to upright', await waitFor(win, `${thumbRotations} === '0,0,0'`));
+
     // Page management: rotate page 1, delete page 3.
     await js(`document.querySelector('#thumbs .thumb [data-action="rotate-right"]').click()`);
     await waitFor(win, `document.querySelector('#thumbs .thumb').dataset.rotation === '90'`);

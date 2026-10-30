@@ -30,6 +30,7 @@ import { initCompare, compareFiles, clearCompare } from './compare.js';
 import { initEditMode, startEditTool, addImage, undoEdit } from './editmode.js';
 import { initStamps, openStampDialog } from './stamps.js';
 import { insertFromFile, insertBlank } from './insertpages.js';
+import { rotatePagesDialog } from './rotatepages.js';
 import { flattenDocument } from './flatten.js';
 import { initAreaText } from './areatext.js';
 import { BOX_SHAPES, LINE_SHAPES } from './markup.js';
@@ -379,6 +380,7 @@ const actions = {
     stamp: openStampDialog,
     'insert-file': insertFromFile,
     'insert-blank': insertBlank,
+    'rotate-pages': rotatePagesDialog,
     flatten: () => flattenDocument(async (file) => {
         await openFile(file, { force: true, announce: false });
         setDirty(true);

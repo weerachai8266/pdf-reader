@@ -83,8 +83,15 @@ export function movePage(fromIdx, toIdx) {
 }
 
 export function rotatePage(idx, delta) {
-    const entry = state.pages[idx];
-    entry.rotation = (((entry.rotation + delta) % 360) + 360) % 360;
+    rotatePages([idx], delta);
+}
+
+// One pages-changed for the whole batch, so the viewer rebuilds once.
+export function rotatePages(indices, delta) {
+    for (const idx of indices) {
+        const entry = state.pages[idx];
+        entry.rotation = (((entry.rotation + delta) % 360) + 360) % 360;
+    }
     pagesChanged();
 }
 
