@@ -106,6 +106,7 @@ node test/packaged.mjs <file.pdf> [--ocr] [--signed] [--convert <file.docx>]   #
 
 **Tooling**
 - **The Write tool turns `\uXXXX` escapes into literal characters**, even NUL. For regexes with escapes, write through Python using `chr(92)`, then check the file with `ascii()`.
+- **Never round-trip a Thai file through Windows PowerShell 5.1 `Get-Content`/`Set-Content` without `-Encoding UTF8`.** It reads UTF-8 as cp874 and writes mojibake (`เธญ...`). v0.15.5 garbled package.json this way, so Explorer showed the PDF file type as gibberish until v0.17.1. Check with `git grep -e 'เธ' -e 'เน€'`.
 - **Bash heredocs break on backslashes, backticks and some Thai text.** Put long patches in a scratchpad `.py` file and run it with `$env:PYTHONIOENCODING='utf-8'; python file.py`. Use the PowerShell tool for anything with backticks.
 - **Commit messages:** PowerShell `git commit -F -` with a here-string failed once and created the tag on the old commit. Write the message to a scratchpad file, run `git commit -F file`, and tag only if `$?`.
 
